@@ -8,9 +8,6 @@ import { calcPayroll, formatCurrency, formatHours, formatDuration } from '../lib
 
 export default function EmployeeDashboard() {
   const { user } = useAuth()
-  const seenKey = `polyhq_seen_${user.id}`
-  const isFirstVisit = !localStorage.getItem(seenKey)
-  if (isFirstVisit) localStorage.setItem(seenKey, '1')
 
   const [active, setActive]               = useState(null)
   const [elapsed, setElapsed]             = useState(0)
@@ -20,15 +17,18 @@ export default function EmployeeDashboard() {
   const [error, setError]                 = useState('')
   const [loading, setLoading]             = useState(false)
 
-  const refresh = useCallback(() => {
-    const now    = new Date()
-    const entry  = getActiveEntry(user.id)
+  const refresh = useCallback(async () => {
+    const now = new Date()
+    const [entry, todayEntries, weekEntries, allEntries] = await Promise.all([
+      getActiveEntry(user.id),
+      getEntriesInRange(getTodayStart(), now, user.id),
+      getEntriesInRange(getWeekStart(), now, user.id),
+      getEntriesForUser(user.id),
+    ])
     setActive(entry)
-    const todayDone = getEntriesInRange(getTodayStart(), now, user.id).filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0)
-    const weekDone  = getEntriesInRange(getWeekStart(),  now, user.id).filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0)
-    setBaseTodayH(todayDone)
-    setBaseWeekH(weekDone)
-    setRecentEntries(getEntriesForUser(user.id).filter(e => e.clock_out).sort((a,b) => new Date(b.clock_in)-new Date(a.clock_in)).slice(0,6))
+    setBaseTodayH(todayEntries.filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0))
+    setBaseWeekH(weekEntries.filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0))
+    setRecentEntries(allEntries.filter(e => e.clock_out).slice(0, 6))
   }, [user.id])
 
   useEffect(() => { refresh() }, [refresh])
@@ -41,8 +41,10 @@ export default function EmployeeDashboard() {
 
   async function handleClock() {
     setError(''); setLoading(true)
-    try { if (active) await clockOut(user.id); else await clockIn(user.id); refresh() }
-    catch (err) { setError(err.message) }
+    try {
+      if (active) await clockOut(user.id); else await clockIn(user.id)
+      await refresh()
+    } catch (err) { setError(err.message) }
     finally { setLoading(false) }
   }
 
@@ -55,7 +57,7 @@ export default function EmployeeDashboard() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-white">
-          {isFirstVisit ? 'Welcome' : 'Welcome back'}, {user.name.split(' ')[0]}
+          Welcome back, {user.name.split(' ')[0]}
         </h1>
         <p className="text-slate-400 mt-1 text-sm">Your hours and estimated pay for this week</p>
       </div>

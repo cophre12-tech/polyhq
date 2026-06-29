@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
   getJobsInRange, createJob, updateJob, deleteJob,
-  getEmployees, getAllAvailability,
+  getEmployees, getAllAvailability, getServices,
 } from '../lib/db.js'
-
-const SERVICE_TYPES = [
-  'Lawn Care', 'Landscaping', 'Cleaning', 'Pressure Washing',
-  'Snow Removal', 'Painting', 'Handyman', 'Inspection', 'Other',
-]
 
 const RECURRING_OPTS = [
   { value: '',          label: 'Does not repeat' },
@@ -39,10 +34,12 @@ function fmt12(t) {
   return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`
 }
 
-const EMPTY = {
-  client_name: '', client_address: '', service_type: 'Lawn Care',
-  date: '', start_time: '08:00', end_time: '10:00',
-  assigned_to: [], recurring: '', recurring_end: '', notes: '', status: 'scheduled',
+function makeEmpty(defaultDate = '') {
+  return {
+    client_name: '', client_address: '', service_type: '',
+    date: defaultDate, start_time: '08:00', end_time: '10:00',
+    assigned_to: [], recurring: '', recurring_end: '', notes: '', status: 'scheduled',
+  }
 }
 
 export default function SchedulePage() {
@@ -59,10 +56,13 @@ export default function SchedulePage() {
   const wStart = toStr(dates[0])
   const wEnd   = toStr(dates[6])
 
-  function load() {
-    setJobs(getJobsInRange(wStart, wEnd))
-    setEmployees(getEmployees())
-    setAvail(getAllAvailability())
+  async function load() {
+    const [j, emps, av] = await Promise.all([
+      getJobsInRange(wStart, wEnd), getEmployees(), getAllAvailability()
+    ])
+    setJobs(j)
+    setEmployees(emps)
+    setAvail(av)
   }
   useEffect(() => { load() }, [wStart])
 
@@ -90,14 +90,14 @@ export default function SchedulePage() {
       .filter(Boolean)
   }
 
-  function handleSave(data) {
-    if (modal.type === 'create') createJob(data)
-    else updateJob(modal.job.id, data)
+  async function handleSave(data) {
+    if (modal.type === 'create') await createJob(data)
+    else await updateJob(modal.job.id, data)
     setModal(null); load()
   }
 
-  function handleDelete(id, allInSeries) {
-    deleteJob(id, allInSeries); setModal(null); load()
+  async function handleDelete(id, allInSeries) {
+    await deleteJob(id, allInSeries); setModal(null); load()
   }
 
   function onDragStart(e, job) {
@@ -107,10 +107,10 @@ export default function SchedulePage() {
   function onDragOver(e, dateStr) {
     e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOver(dateStr)
   }
-  function onDrop(e, dateStr) {
+  async function onDrop(e, dateStr) {
     e.preventDefault()
     const job = jobs.find(j => j.id === dragging)
-    if (job && job.date !== dateStr) { updateJob(dragging, { date: dateStr }); load() }
+    if (job && job.date !== dateStr) { await updateJob(dragging, { date: dateStr }); load() }
     setDragging(null); setDragOver(null)
   }
 
@@ -367,11 +367,21 @@ export default function SchedulePage() {
 
 function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose }) {
   const isEdit = type === 'edit'
+  const [services, setServices] = useState([])
   const [form, setForm] = useState(() => isEdit
-    ? { client_name: job.client_name??'', client_address: job.client_address??'', service_type: job.service_type??'Lawn Care', date: job.date??'', start_time: job.start_time??'08:00', end_time: job.end_time??'10:00', assigned_to: job.assigned_to??[], recurring: job.recurring??'', recurring_end: job.recurring_end??'', notes: job.notes??'', status: job.status??'scheduled' }
-    : { ...EMPTY, date: defaultDate ?? '' }
+    ? { client_name: job.client_name??'', client_address: job.client_address??'', service_type: job.service_type??'', date: job.date??'', start_time: job.start_time??'08:00', end_time: job.end_time??'10:00', assigned_to: job.assigned_to??[], recurring: job.recurring??'', recurring_end: job.recurring_end??'', notes: job.notes??'', status: job.status??'scheduled' }
+    : makeEmpty(defaultDate)
   )
   const [delConfirm, setDelConfirm] = useState(false)
+
+  useEffect(() => {
+    getServices().then(svcs => {
+      setServices(svcs)
+      if (!isEdit && !form.service_type && svcs[0]) {
+        setForm(f => ({ ...f, service_type: svcs[0].name }))
+      }
+    })
+  }, [])
 
   function set(f, v) { setForm(p => ({ ...p, [f]: v })) }
   function toggleEmp(uid) {
@@ -395,7 +405,8 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose
             </MField>
             <MField label="Service Type">
               <select value={form.service_type} onChange={e => set('service_type', e.target.value)} className="input">
-                {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
+                {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                <option value="Custom">Custom</option>
               </select>
             </MField>
           </div>

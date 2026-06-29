@@ -24,7 +24,7 @@ export default function ExpensesPage() {
   })
   const [error, setError] = useState('')
 
-  function load() { setExpenses(getAllExpenses()) }
+  async function load() { setExpenses(await getAllExpenses()) }
   useEffect(() => { load() }, [])
 
   function set(field, value) { setForm(f => ({ ...f, [field]: value })) }

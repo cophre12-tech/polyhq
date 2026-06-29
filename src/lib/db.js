@@ -1,19 +1,6 @@
-const DEMO_USERS = [
-  { id: 'owner0', email: 'cophre12@gmail.com', password: 'polyhq2024', role: 'owner', name: 'Conor Reilly', hourly_rate: null },
-  { id: 'owner1', email: 'owner@demo.com', password: 'demo123', role: 'owner', name: 'Sarah Chen', hourly_rate: null },
-]
+import { supabase } from './supabase.js'
 
-const ENTRY_SEED = []
-
-const EXPENSE_SEED = [
-  { daysAgo: 6, category: 'Equipment', description: 'Power drill set',               amount: 189.99 },
-  { daysAgo: 5, category: 'Supplies',  description: 'Cleaning supplies — bulk order', amount: 67.45  },
-  { daysAgo: 4, category: 'Travel',    description: 'Gas reimbursement — job sites',  amount: 48.20  },
-  { daysAgo: 3, category: 'Supplies',  description: 'Safety gloves (12 pairs)',        amount: 34.80  },
-  { daysAgo: 2, category: 'Labor',     description: 'Subcontractor payment',           amount: 250.00 },
-  { daysAgo: 1, category: 'Other',     description: 'Business cards printing',         amount: 55.00  },
-]
-
+// ── Pure utility functions (no DB) ────────────────────────────────────────────
 export function getWeekStart(offsetWeeks = 0) {
   const d = new Date()
   const day = d.getDay()
@@ -28,341 +15,200 @@ export function getTodayStart() {
   return d
 }
 
-// Clear old seed data that referenced removed demo employees
-;(function purgeLegacySeed() {
-  const entries = JSON.parse(localStorage.getItem('polyhq_time_entries') || '[]')
-  if (entries.some(e => ['emp1', 'emp2', 'emp3'].includes(e.user_id))) {
-    localStorage.removeItem('polyhq_seeded')
-    localStorage.removeItem('polyhq_time_entries')
-  }
-})()
-
-function seedDemoData() {
-  if (localStorage.getItem('polyhq_seeded')) return
-
-  const monday = getWeekStart()
-  const today = getTodayStart()
-  const DAY = 86400000
-
-  const entries = ENTRY_SEED
-    .map((s, i) => {
-      const dayStart = new Date(monday.getTime() + s.dayOffset * DAY)
-      if (dayStart >= today) return null // skip today and future
-      const clockIn = new Date(dayStart)
-      clockIn.setHours(s.clockInH, s.clockInM, 0, 0)
-      const clockOut = new Date(clockIn.getTime() + s.hoursWorked * 3600000)
-      return { id: `seed_${i}`, user_id: s.user_id, clock_in: clockIn.toISOString(), clock_out: clockOut.toISOString() }
-    })
-    .filter(Boolean)
-
-  const now = Date.now()
-  const expenses = EXPENSE_SEED.map((s, i) => {
-    const d = new Date(now - s.daysAgo * DAY)
-    return {
-      id: `exp_seed_${i}`,
-      user_id: 'owner1',
-      category: s.category,
-      description: s.description,
-      amount: s.amount,
-      date: d.toISOString().split('T')[0],
-      created_at: d.toISOString(),
-    }
-  })
-
-  localStorage.setItem('polyhq_time_entries', JSON.stringify(entries))
-  localStorage.setItem('polyhq_expenses', JSON.stringify(expenses))
-  localStorage.setItem('polyhq_seeded', 'true')
-}
-
-seedDemoData()
-
-// ── Registered users (localStorage) ─────────────────────────────────────────
-
-function getRegisteredUsers() {
-  return JSON.parse(localStorage.getItem('polyhq_users') || '[]')
-}
-
-function findUser(email) {
-  const lower = email.toLowerCase()
-  const builtin = DEMO_USERS.find(u => u.email === lower)
-  if (builtin) return builtin
-  return getRegisteredUsers().find(u => u.email === lower) ?? null
-}
-
-export async function register({ name, email, password, role, hourly_rate }) {
-  const lower = email.toLowerCase()
-  if (findUser(lower)) throw new Error('An account with that email already exists')
-  const user = {
-    id: `user_${Date.now()}`,
-    name: name.trim(),
-    email: lower,
-    password,
-    role,
-    hourly_rate: role === 'employee' ? (parseFloat(hourly_rate) || 0) : null,
-  }
-  const users = getRegisteredUsers()
-  users.push(user)
-  localStorage.setItem('polyhq_users', JSON.stringify(users))
-  const { password: _, ...session } = user
-  localStorage.setItem('polyhq_session', JSON.stringify(session))
-  return session
-}
-
-// ── Storage helpers ──────────────────────────────────────────────────────────
-
-function readEntries() {
-  return JSON.parse(localStorage.getItem('polyhq_time_entries') || '[]')
-}
-
-function writeEntries(entries) {
-  localStorage.setItem('polyhq_time_entries', JSON.stringify(entries))
-}
-
-function readExpenses() {
-  return JSON.parse(localStorage.getItem('polyhq_expenses') || '[]')
-}
-
-function writeExpenses(expenses) {
-  localStorage.setItem('polyhq_expenses', JSON.stringify(expenses))
-}
-
-function readRevenue() {
-  return JSON.parse(localStorage.getItem('polyhq_revenue') || '[]')
-}
-
-function writeRevenue(data) {
-  localStorage.setItem('polyhq_revenue', JSON.stringify(data))
-}
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
-
-export async function login(email, password) {
-  const user = findUser(email)
-  if (!user || user.password !== password) throw new Error('Invalid email or password')
-  const { password: _, ...session } = user
-  localStorage.setItem('polyhq_session', JSON.stringify(session))
-  return session
-}
-
-export function logout() {
-  localStorage.removeItem('polyhq_session')
-}
-
-export function getSession() {
-  const s = localStorage.getItem('polyhq_session')
-  return s ? JSON.parse(s) : null
-}
-
-export function addEmployee({ name, email, password, hourly_rate }) {
-  const lower = email.toLowerCase()
-  if (findUser(lower)) throw new Error('An account with that email already exists')
-  const user = {
-    id: `user_${Date.now()}`,
-    name: name.trim(),
-    email: lower,
-    password,
-    role: 'employee',
-    hourly_rate: parseFloat(hourly_rate) || 0,
-  }
-  const users = getRegisteredUsers()
-  users.push(user)
-  localStorage.setItem('polyhq_users', JSON.stringify(users))
-  return user
-}
-
-export function removeEmployee(userId) {
-  const users = getRegisteredUsers().filter(u => u.id !== userId)
-  localStorage.setItem('polyhq_users', JSON.stringify(users))
-}
-
-export function updateEmployeeRate(userId, rate) {
-  const users = getRegisteredUsers()
-  const idx = users.findIndex(u => u.id === userId)
-  if (idx !== -1) {
-    users[idx].hourly_rate = parseFloat(rate) || 0
-    localStorage.setItem('polyhq_users', JSON.stringify(users))
-  }
-}
-
-export function getEmployees() {
-  const builtIn = DEMO_USERS.filter(u => u.role === 'employee')
-  const registered = getRegisteredUsers().filter(u => u.role === 'employee')
-  return [...builtIn, ...registered].map(({ password: _, ...u }) => u)
-}
-
-export function addCoOwner({ name, email, password }) {
-  const lower = email.toLowerCase()
-  if (findUser(lower)) throw new Error('An account with that email already exists')
-  const user = {
-    id: `user_${Date.now()}`,
-    name: name.trim(),
-    email: lower,
-    password,
-    role: 'co_owner',
-    hourly_rate: null,
-  }
-  const users = getRegisteredUsers()
-  users.push(user)
-  localStorage.setItem('polyhq_users', JSON.stringify(users))
-  return user
-}
-
-export function removeCoOwner(userId) {
-  const users = getRegisteredUsers().filter(u => u.id !== userId)
-  localStorage.setItem('polyhq_users', JSON.stringify(users))
-}
-
-export function getCoOwners() {
-  return getRegisteredUsers()
-    .filter(u => u.role === 'co_owner')
-    .map(({ password: _, ...u }) => u)
-}
-
-// ── Time entries ─────────────────────────────────────────────────────────────
-
-export async function clockIn(userId) {
-  const entries = readEntries()
-  if (entries.find(e => e.user_id === userId && !e.clock_out)) {
-    throw new Error('Already clocked in')
-  }
-  const entry = { id: `entry_${Date.now()}`, user_id: userId, clock_in: new Date().toISOString(), clock_out: null }
-  writeEntries([...entries, entry])
-  return entry
-}
-
-export async function clockOut(userId) {
-  const entries = readEntries()
-  const idx = entries.findIndex(e => e.user_id === userId && !e.clock_out)
-  if (idx === -1) throw new Error('Not clocked in')
-  entries[idx] = { ...entries[idx], clock_out: new Date().toISOString() }
-  writeEntries(entries)
-  return entries[idx]
-}
-
-export function getActiveEntry(userId) {
-  return readEntries().find(e => e.user_id === userId && !e.clock_out) ?? null
-}
-
-export function getEntriesForUser(userId) {
-  return readEntries().filter(e => e.user_id === userId)
-}
-
-export function getEntriesInRange(start, end, userId = null) {
-  return readEntries().filter(e => {
-    const t = new Date(e.clock_in)
-    const inRange = t >= start && t <= end
-    return userId ? inRange && e.user_id === userId : inRange
-  })
-}
-
 export function entryDuration(entry) {
   const start = new Date(entry.clock_in)
   const end = entry.clock_out ? new Date(entry.clock_out) : new Date()
   return Math.max(0, (end - start) / 3600000)
 }
 
-// ── Revenue ──────────────────────────────────────────────────────────────────
-
-export async function addRevenue(data) {
-  const revenue = readRevenue()
-  const entry = { id: `rev_${Date.now()}`, ...data, created_at: new Date().toISOString() }
-  writeRevenue([...revenue, entry])
-  return entry
+export function calcPayroll(hours, hourlyRate) {
+  const rate = parseFloat(hourlyRate) || 0
+  const gross = parseFloat((hours * rate).toFixed(2))
+  return { hours: parseFloat(hours.toFixed(2)), gross, net: gross }
 }
 
-export async function deleteRevenue(id) {
-  writeRevenue(readRevenue().filter(r => r.id !== id))
+function fmt12(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
-export function getAllRevenue() {
-  return readRevenue().sort((a, b) => new Date(b.date) - new Date(a.date))
+// ── Business ID cache ─────────────────────────────────────────────────────────
+let _businessId = null
+
+async function biz() {
+  if (_businessId) return _businessId
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('profiles')
+    .select('business_id')
+    .eq('id', user.id)
+    .single()
+  _businessId = data?.business_id ?? null
+  return _businessId
 }
 
-// ── Expenses ─────────────────────────────────────────────────────────────────
+export function clearBizCache() { _businessId = null }
 
-export async function addExpense(data) {
-  const expenses = readExpenses()
-  const expense = { id: `exp_${Date.now()}`, ...data, created_at: new Date().toISOString() }
-  writeExpenses([...expenses, expense])
-  return expense
+// ── Profiles ──────────────────────────────────────────────────────────────────
+export async function getEmployees() {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, name, email, role, hourly_rate')
+    .eq('role', 'employee')
+    .order('name')
+  return data || []
 }
 
-export async function deleteExpense(id) {
-  writeExpenses(readExpenses().filter(e => e.id !== id))
+export async function getCoOwners() {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, name, email, role, hourly_rate')
+    .eq('role', 'co_owner')
+    .order('name')
+  return data || []
 }
 
-export function getAllExpenses() {
-  return readExpenses().sort((a, b) => new Date(b.date) - new Date(a.date))
+export async function getOwners() {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, name, email, role, hourly_rate')
+    .in('role', ['owner', 'co_owner'])
+    .order('name')
+  return data || []
 }
 
-// ── Invoices ──────────────────────────────────────────────────────────────────
-
-function readInvoices() {
-  return JSON.parse(localStorage.getItem('polyhq_invoices') || '[]')
+export async function getAllTeamMembers() {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, name, email, role, hourly_rate')
+    .in('role', ['employee', 'co_owner'])
+    .order('name')
+  return data || []
 }
 
-function writeInvoices(data) {
-  localStorage.setItem('polyhq_invoices', JSON.stringify(data))
+export async function updateEmployeeRate(userId, rate) {
+  await supabase
+    .from('profiles')
+    .update({ hourly_rate: parseFloat(rate) || 0 })
+    .eq('id', userId)
 }
 
-function nextInvoiceNumber() {
-  const invoices = readInvoices()
-  const max = invoices.reduce((m, inv) => Math.max(m, parseInt(inv.number.slice(4)) || 0), 0)
-  return `INV-${String(max + 1).padStart(4, '0')}`
+export async function updateTeamMemberRole(userId, newRole) {
+  await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
 }
 
-export function createInvoice(data) {
-  const invoices = readInvoices()
-  const invoice = {
-    id: `inv_${Date.now()}`,
-    number: nextInvoiceNumber(),
-    status: 'draft',
-    sent_at: null,
-    paid_at: null,
-    created_at: new Date().toISOString(),
-    ...data,
-  }
-  writeInvoices([...invoices, invoice])
-  return invoice
+export async function updateTeamMemberRate(userId, rate) {
+  await supabase
+    .from('profiles')
+    .update({ hourly_rate: parseFloat(rate) || 0 })
+    .eq('id', userId)
 }
 
-export function updateInvoice(id, updates) {
-  const invoices = readInvoices()
-  const idx = invoices.findIndex(inv => inv.id === id)
-  if (idx === -1) return null
-  invoices[idx] = { ...invoices[idx], ...updates }
-  writeInvoices(invoices)
-  return invoices[idx]
+export async function removeEmployee(userId) {
+  await supabase.from('profiles').delete().eq('id', userId)
 }
 
-export function deleteInvoice(id) {
-  writeInvoices(readInvoices().filter(inv => inv.id !== id))
+export async function removeCoOwner(userId) {
+  await supabase.from('profiles').delete().eq('id', userId)
 }
 
-export function getAllInvoices() {
-  const today = new Date().toISOString().split('T')[0]
-  const invoices = readInvoices()
-  let changed = false
-  const updated = invoices.map(inv => {
-    if (['sent', 'viewed'].includes(inv.status) && inv.due_date && inv.due_date < today) {
-      changed = true
-      return { ...inv, status: 'overdue' }
-    }
-    return inv
-  })
-  if (changed) writeInvoices(updated)
-  return updated.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+export async function removeTeamMember(userId) {
+  await supabase.from('profiles').delete().eq('id', userId)
 }
 
-export function getInvoiceById(id) {
-  return getAllInvoices().find(inv => inv.id === id) ?? null
+// ── Pending invites ───────────────────────────────────────────────────────────
+export async function inviteTeamMember({ name, email, role, hourly_rate }) {
+  const businessId = await biz()
+  const { error } = await supabase.from('pending_invites').upsert({
+    business_id: businessId,
+    email: email.toLowerCase().trim(),
+    name: name.trim(),
+    role,
+    hourly_rate: parseFloat(hourly_rate) || 0,
+  }, { onConflict: 'business_id,email' })
+  if (error) throw new Error(error.message)
 }
 
-// ── Jobs / Schedule ───────────────────────────────────────────────────────────
+export async function addEmployee(form) {
+  return inviteTeamMember({ ...form, role: 'employee' })
+}
 
-function readJobs() { return JSON.parse(localStorage.getItem('polyhq_jobs') || '[]') }
-function writeJobs(d) { localStorage.setItem('polyhq_jobs', JSON.stringify(d)) }
+export async function addCoOwner(form) {
+  return inviteTeamMember({ ...form, role: 'co_owner' })
+}
 
+export async function getPendingInvites() {
+  const { data } = await supabase
+    .from('pending_invites')
+    .select('*')
+    .order('created_at')
+  return data || []
+}
+
+export async function deletePendingInvite(id) {
+  await supabase.from('pending_invites').delete().eq('id', id)
+}
+
+// ── Clock records ─────────────────────────────────────────────────────────────
+export async function clockIn(userId) {
+  const businessId = await biz()
+  const active = await getActiveEntry(userId)
+  if (active) throw new Error('Already clocked in')
+  const { data, error } = await supabase
+    .from('clock_records')
+    .insert({ business_id: businessId, user_id: userId, clock_in: new Date().toISOString() })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function clockOut(userId) {
+  const active = await getActiveEntry(userId)
+  if (!active) throw new Error('Not clocked in')
+  const { data, error } = await supabase
+    .from('clock_records')
+    .update({ clock_out: new Date().toISOString() })
+    .eq('id', active.id)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getActiveEntry(userId) {
+  const { data } = await supabase
+    .from('clock_records')
+    .select('*')
+    .eq('user_id', userId)
+    .is('clock_out', null)
+    .limit(1)
+  return data?.[0] || null
+}
+
+export async function getEntriesForUser(userId) {
+  const { data } = await supabase
+    .from('clock_records')
+    .select('*')
+    .eq('user_id', userId)
+    .order('clock_in', { ascending: false })
+  return data || []
+}
+
+export async function getEntriesInRange(start, end, userId = null) {
+  let q = supabase
+    .from('clock_records')
+    .select('*')
+    .gte('clock_in', start.toISOString())
+    .lte('clock_in', end.toISOString())
+  if (userId) q = q.eq('user_id', userId)
+  const { data } = await q
+  return data || []
+}
+
+// ── Jobs ──────────────────────────────────────────────────────────────────────
 function shiftDate(dateStr, pattern) {
   const d = new Date(dateStr + 'T00:00:00')
   if (pattern === 'weekly')   d.setDate(d.getDate() + 7)
@@ -373,7 +219,9 @@ function shiftDate(dateStr, pattern) {
 
 function recurringDates(start, pattern, endDate) {
   const cutoff = endDate || (() => {
-    const d = new Date(start + 'T00:00:00'); d.setMonth(d.getMonth() + 3); return d.toISOString().split('T')[0]
+    const d = new Date(start + 'T00:00:00')
+    d.setMonth(d.getMonth() + 3)
+    return d.toISOString().split('T')[0]
   })()
   const dates = []
   let cur = start
@@ -385,234 +233,508 @@ function recurringDates(start, pattern, endDate) {
   return dates
 }
 
-export function createJob(data) {
-  const jobs = readJobs()
-  const id = `job_${Date.now()}`
-  const base = { id, status: 'scheduled', parent_id: null, created_at: new Date().toISOString(), ...data }
-  jobs.push(base)
+async function pushJobNotif(userId, type, title, message, jobId) {
+  const businessId = await biz()
+  await supabase.from('notifications').insert({
+    business_id: businessId, user_id: userId, type, title, message, job_id: jobId, read: false,
+  })
+}
 
-  if (data.recurring) {
-    recurringDates(data.date, data.recurring, data.recurring_end || '').forEach((date, i) => {
-      jobs.push({ ...base, id: `job_${Date.now()}_r${i}`, date, parent_id: id, status: 'scheduled', created_at: new Date().toISOString() })
-    })
+export async function createJob(data) {
+  const businessId = await biz()
+  const payload = { ...data, business_id: businessId, parent_id: null, status: data.status || 'scheduled' }
+  const { data: job, error } = await supabase.from('jobs').insert(payload).select().single()
+  if (error) throw new Error(error.message)
+
+  if (data.recurring && data.date) {
+    const dates = recurringDates(data.date, data.recurring, data.recurring_end || '')
+    if (dates.length > 0) {
+      await supabase.from('jobs').insert(dates.map(date => ({
+        ...payload, date, parent_id: job.id, status: 'scheduled',
+      })))
+    }
   }
 
-  writeJobs(jobs)
-  ;(data.assigned_to || []).forEach(uid => _pushNotif(uid, 'job_assigned',
-    'New job scheduled',
-    `${data.service_type} for ${data.client_name} on ${data.date}${data.start_time ? ' at ' + fmt12(data.start_time) : ''}`,
-    id))
-  return base
-}
-
-export function updateJob(id, updates) {
-  const jobs = readJobs()
-  const idx = jobs.findIndex(j => j.id === id)
-  if (idx === -1) return null
-  const prev = jobs[idx]
-  jobs[idx] = { ...prev, ...updates }
-  writeJobs(jobs)
-
-  const prevAssigned = prev.assigned_to || []
-  const newAssigned  = updates.assigned_to ?? prevAssigned
-  newAssigned.filter(uid => !prevAssigned.includes(uid)).forEach(uid =>
-    _pushNotif(uid, 'job_assigned', 'New job scheduled',
-      `${jobs[idx].service_type} for ${jobs[idx].client_name} on ${jobs[idx].date}`, id))
-  if (updates.date && updates.date !== prev.date) {
-    prevAssigned.filter(uid => newAssigned.includes(uid)).forEach(uid =>
-      _pushNotif(uid, 'job_updated', 'Job rescheduled',
-        `${jobs[idx].service_type} for ${jobs[idx].client_name} moved to ${updates.date}`, id))
+  for (const uid of (data.assigned_to || [])) {
+    await pushJobNotif(uid, 'job_assigned', 'New job scheduled',
+      `${data.service_type} for ${data.client_name} on ${data.date}${data.start_time ? ' at ' + fmt12(data.start_time) : ''}`,
+      job.id)
   }
-  return jobs[idx]
+  return job
 }
 
-export function deleteJob(id, allInSeries = false) {
-  const jobs = readJobs()
-  const job = jobs.find(j => j.id === id)
-  if (!job) return
-  const root = job.parent_id || id
-  writeJobs(jobs.filter(j => allInSeries ? (j.id !== root && j.parent_id !== root) : j.id !== id))
+export async function updateJob(id, updates) {
+  const { data: prev } = await supabase.from('jobs').select('*').eq('id', id).single()
+  const { data: job, error } = await supabase.from('jobs').update(updates).eq('id', id).select().single()
+  if (error) throw new Error(error.message)
+
+  if (prev && updates.assigned_to) {
+    const prevAssigned = prev.assigned_to || []
+    const newAssigned = updates.assigned_to
+    for (const uid of newAssigned.filter(u => !prevAssigned.includes(u))) {
+      await pushJobNotif(uid, 'job_assigned', 'New job scheduled',
+        `${job.service_type} for ${job.client_name} on ${job.date}`, id)
+    }
+    if (updates.date && updates.date !== prev.date) {
+      for (const uid of prevAssigned.filter(u => newAssigned.includes(u))) {
+        await pushJobNotif(uid, 'job_updated', 'Job rescheduled',
+          `${job.service_type} for ${job.client_name} moved to ${updates.date}`, id)
+      }
+    }
+  }
+  return job
 }
 
-export function getJobsInRange(start, end) {
-  return readJobs()
-    .filter(j => j.date >= start && j.date <= end)
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+export async function deleteJob(id, allInSeries = false) {
+  if (allInSeries) {
+    const { data: job } = await supabase.from('jobs').select('parent_id').eq('id', id).single()
+    const root = job?.parent_id || id
+    await supabase.from('jobs').delete().or(`id.eq.${root},parent_id.eq.${root}`)
+  } else {
+    await supabase.from('jobs').delete().eq('id', id)
+  }
 }
 
-export function getJobsForEmployee(userId) {
-  return readJobs()
-    .filter(j => (j.assigned_to || []).includes(userId))
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''))
+export async function getJobsInRange(start, end) {
+  const { data } = await supabase
+    .from('jobs')
+    .select('*')
+    .gte('date', start)
+    .lte('date', end)
+    .order('date')
+    .order('start_time')
+  return data || []
 }
 
-function fmt12(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`
+export async function getJobsForEmployee(userId) {
+  const { data } = await supabase
+    .from('jobs')
+    .select('*')
+    .contains('assigned_to', [userId])
+    .order('date')
+  return data || []
+}
+
+export async function getAllJobs() {
+  const { data } = await supabase.from('jobs').select('*').order('date', { ascending: false })
+  return data || []
+}
+
+export async function getJobById(id) {
+  const { data } = await supabase.from('jobs').select('*').eq('id', id).single()
+  return data || null
 }
 
 // ── Availability ──────────────────────────────────────────────────────────────
+export async function getAvailability(userId) {
+  const { data } = await supabase.from('availability').select('date').eq('user_id', userId)
+  return (data || []).map(r => r.date)
+}
 
-function readAvail() { return JSON.parse(localStorage.getItem('polyhq_availability') || '{}') }
-function writeAvail(d) { localStorage.setItem('polyhq_availability', JSON.stringify(d)) }
+export async function getAllAvailability() {
+  const { data } = await supabase.from('availability').select('user_id, date')
+  const result = {}
+  for (const row of (data || [])) {
+    result[row.user_id] = result[row.user_id] || []
+    result[row.user_id].push(row.date)
+  }
+  return result
+}
 
-export function getAvailability(userId) { return readAvail()[userId] ?? [] }
-export function getAllAvailability()    { return readAvail() }
-
-export function toggleUnavailableDate(userId, date) {
-  const all = readAvail()
-  const cur = all[userId] ?? []
-  all[userId] = cur.includes(date) ? cur.filter(d => d !== date) : [...cur, date]
-  writeAvail(all)
-  return all[userId]
+export async function toggleUnavailableDate(userId, date) {
+  const businessId = await biz()
+  const { data: existing } = await supabase
+    .from('availability')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('date', date)
+    .limit(1)
+  if (existing?.length) {
+    await supabase.from('availability').delete().eq('id', existing[0].id)
+  } else {
+    await supabase.from('availability').insert({ user_id: userId, date, business_id: businessId })
+  }
+  return getAvailability(userId)
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
-
-function readNotifs() { return JSON.parse(localStorage.getItem('polyhq_notifs') || '[]') }
-function writeNotifs(d) { localStorage.setItem('polyhq_notifs', JSON.stringify(d)) }
-
-function _pushNotif(userId, type, title, message, jobId = null) {
-  const n = readNotifs()
-  n.push({ id: `n_${Date.now()}_${Math.random().toString(36).slice(2,5)}`, user_id: userId, type, title, message, job_id: jobId, read: false, created_at: new Date().toISOString() })
-  writeNotifs(n)
+export async function getNotifications(userId) {
+  const { data } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(40)
+  return data || []
 }
 
-export function getNotifications(userId) {
-  return readNotifs().filter(n => n.user_id === userId).sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0, 40)
+export async function getUnreadCount(userId) {
+  const { count } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('read', false)
+  return count || 0
 }
 
-export function getUnreadCount(userId) {
-  return readNotifs().filter(n => n.user_id === userId && !n.read).length
+export async function markNotificationRead(id) {
+  await supabase.from('notifications').update({ read: true }).eq('id', id)
 }
 
-export function markNotificationRead(id) {
-  const n = readNotifs(); const i = n.findIndex(x => x.id === id)
-  if (i >= 0) { n[i].read = true; writeNotifs(n) }
+export async function markAllNotificationsRead(userId) {
+  await supabase.from('notifications').update({ read: true }).eq('user_id', userId)
 }
 
-export function markAllNotificationsRead(userId) {
-  writeNotifs(readNotifs().map(n => n.user_id === userId ? {...n, read: true} : n))
+// ── Revenue ───────────────────────────────────────────────────────────────────
+export async function addRevenue(data) {
+  const businessId = await biz()
+  const { data: rev, error } = await supabase
+    .from('revenue')
+    .insert({ ...data, business_id: businessId })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return rev
 }
 
-// ── All jobs (for comms / notes / photos filtering) ───────────────────────────
-
-export function getAllJobs() {
-  return readJobs().sort((a, b) => b.date.localeCompare(a.date))
+export async function deleteRevenue(id) {
+  await supabase.from('revenue').delete().eq('id', id)
 }
 
-// ── Owners list (so employees know who to DM) ─────────────────────────────────
-
-export function getOwners() {
-  const builtIn = DEMO_USERS.filter(u => u.role === 'owner')
-  const registered = getRegisteredUsers().filter(u => ['owner', 'co_owner'].includes(u.role))
-  return [...builtIn, ...registered].map(({ password: _, ...u }) => u)
+export async function getAllRevenue() {
+  const { data } = await supabase.from('revenue').select('*').order('date', { ascending: false })
+  return data || []
 }
 
-// ── Direct Messages ───────────────────────────────────────────────────────────
-
-function readDMs() { return JSON.parse(localStorage.getItem('polyhq_dm') || '[]') }
-function writeDMs(d) { localStorage.setItem('polyhq_dm', JSON.stringify(d)) }
-
-export function sendDM(fromId, toId, body) {
-  const msg = { id: `dm_${Date.now()}`, from_id: fromId, to_id: toId, body: body.trim(), created_at: new Date().toISOString(), read: false }
-  writeDMs([...readDMs(), msg])
-  return msg
+// ── Expenses ──────────────────────────────────────────────────────────────────
+export async function addExpense(data) {
+  const businessId = await biz()
+  const { data: exp, error } = await supabase
+    .from('expenses')
+    .insert({
+      description: data.description,
+      amount: parseFloat(data.amount) || 0,
+      category: data.category,
+      date: data.date,
+      business_id: businessId,
+    })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return exp
 }
 
-export function getDMThread(uid1, uid2) {
-  return readDMs()
-    .filter(m => (m.from_id === uid1 && m.to_id === uid2) || (m.from_id === uid2 && m.to_id === uid1))
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+export async function deleteExpense(id) {
+  await supabase.from('expenses').delete().eq('id', id)
 }
 
-export function markThreadRead(toId, fromId) {
-  writeDMs(readDMs().map(m =>
-    (m.from_id === fromId && m.to_id === toId && !m.read) ? { ...m, read: true } : m
-  ))
+export async function getAllExpenses() {
+  const { data } = await supabase.from('expenses').select('*').order('date', { ascending: false })
+  return data || []
 }
 
-export function getUnreadDMCount(userId) {
-  return readDMs().filter(m => m.to_id === userId && !m.read).length
+// ── Invoices ──────────────────────────────────────────────────────────────────
+async function nextInvoiceNumber() {
+  const { data } = await supabase
+    .from('invoices')
+    .select('number')
+    .order('created_at', { ascending: false })
+    .limit(200)
+  const max = (data || []).reduce((m, inv) => {
+    const n = parseInt((inv.number || '').replace('INV-', '')) || 0
+    return Math.max(m, n)
+  }, 0)
+  return `INV-${String(max + 1).padStart(4, '0')}`
+}
+
+export async function createInvoice(data) {
+  const businessId = await biz()
+  const number = await nextInvoiceNumber()
+  const { data: inv, error } = await supabase
+    .from('invoices')
+    .insert({ ...data, business_id: businessId, number, status: 'draft' })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return inv
+}
+
+export async function updateInvoice(id, updates) {
+  const { data, error } = await supabase.from('invoices').update(updates).eq('id', id).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deleteInvoice(id) {
+  await supabase.from('invoices').delete().eq('id', id)
+}
+
+export async function getAllInvoices() {
+  const { data } = await supabase
+    .from('invoices')
+    .select('*')
+    .order('created_at', { ascending: false })
+  const today = new Date().toISOString().split('T')[0]
+  const invoices = data || []
+  const overdueIds = invoices
+    .filter(inv => ['sent', 'viewed'].includes(inv.status) && inv.due_date && inv.due_date < today)
+    .map(inv => inv.id)
+  if (overdueIds.length > 0) {
+    await supabase.from('invoices').update({ status: 'overdue' }).in('id', overdueIds)
+    return invoices.map(inv => overdueIds.includes(inv.id) ? { ...inv, status: 'overdue' } : inv)
+  }
+  return invoices
+}
+
+export async function getInvoiceById(id) {
+  const { data } = await supabase.from('invoices').select('*').eq('id', id).single()
+  return data || null
+}
+
+// ── Direct messages ───────────────────────────────────────────────────────────
+export async function sendDM(fromId, toId, body) {
+  const businessId = await biz()
+  const { data } = await supabase
+    .from('direct_messages')
+    .insert({ business_id: businessId, from_id: fromId, to_id: toId, body: body.trim(), read: false })
+    .select()
+    .single()
+  return data
+}
+
+export async function getDMThread(uid1, uid2) {
+  const { data } = await supabase
+    .from('direct_messages')
+    .select('*')
+    .or(`and(from_id.eq.${uid1},to_id.eq.${uid2}),and(from_id.eq.${uid2},to_id.eq.${uid1})`)
+    .order('created_at')
+  return data || []
+}
+
+export async function markThreadRead(toId, fromId) {
+  await supabase
+    .from('direct_messages')
+    .update({ read: true })
+    .eq('from_id', fromId)
+    .eq('to_id', toId)
+    .eq('read', false)
+}
+
+export async function getUnreadDMCount(userId) {
+  const { count } = await supabase
+    .from('direct_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('to_id', userId)
+    .eq('read', false)
+  return count || 0
 }
 
 // ── Announcements ─────────────────────────────────────────────────────────────
-
-function readAnn() { return JSON.parse(localStorage.getItem('polyhq_announcements') || '[]') }
-function writeAnn(d) { localStorage.setItem('polyhq_announcements', JSON.stringify(d)) }
-
-export function sendAnnouncement(authorId, body) {
-  const a = { id: `ann_${Date.now()}`, author_id: authorId, body: body.trim(), created_at: new Date().toISOString(), read_by: [authorId] }
-  writeAnn([...readAnn(), a])
-  return a
+export async function sendAnnouncement(senderId, body) {
+  const businessId = await biz()
+  const { data } = await supabase
+    .from('announcements')
+    .insert({ business_id: businessId, sender_id: senderId, body: body.trim(), read_by: [senderId] })
+    .select()
+    .single()
+  return data
 }
 
-export function deleteAnnouncement(id) {
-  writeAnn(readAnn().filter(a => a.id !== id))
+export async function deleteAnnouncement(id) {
+  await supabase.from('announcements').delete().eq('id', id)
 }
 
-export function getAnnouncements() {
-  return readAnn().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+export async function getAnnouncements() {
+  const { data } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false })
+  return data || []
 }
 
-export function markAnnouncementRead(userId, annId) {
-  writeAnn(readAnn().map(a =>
-    a.id === annId && !a.read_by.includes(userId)
-      ? { ...a, read_by: [...a.read_by, userId] } : a
-  ))
+export async function markAnnouncementRead(userId, annId) {
+  const { data: ann } = await supabase
+    .from('announcements')
+    .select('read_by')
+    .eq('id', annId)
+    .single()
+  if (!ann || (ann.read_by || []).includes(userId)) return
+  await supabase
+    .from('announcements')
+    .update({ read_by: [...ann.read_by, userId] })
+    .eq('id', annId)
 }
 
-export function getUnreadAnnouncementCount(userId) {
-  return readAnn().filter(a => !a.read_by.includes(userId)).length
+export async function getUnreadAnnouncementCount(userId) {
+  const { data } = await supabase.from('announcements').select('read_by')
+  return (data || []).filter(a => !(a.read_by || []).includes(userId)).length
 }
 
-// ── Job Notes ─────────────────────────────────────────────────────────────────
-
-function readJobNotes() { return JSON.parse(localStorage.getItem('polyhq_job_notes') || '[]') }
-function writeJobNotes(d) { localStorage.setItem('polyhq_job_notes', JSON.stringify(d)) }
-
-export function addJobNote(jobId, userId, body) {
-  const note = { id: `note_${Date.now()}`, job_id: jobId, user_id: userId, body: body.trim(), created_at: new Date().toISOString() }
-  writeJobNotes([...readJobNotes(), note])
-  return note
+export async function getUnreadCommsCount(userId) {
+  const [dm, ann] = await Promise.all([
+    getUnreadDMCount(userId),
+    getUnreadAnnouncementCount(userId),
+  ])
+  return dm + ann
 }
 
-export function getJobNotes(jobId) {
-  return readJobNotes()
-    .filter(n => n.job_id === jobId)
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+// ── Job notes ─────────────────────────────────────────────────────────────────
+export async function addJobNote(jobId, userId, body) {
+  const businessId = await biz()
+  const { data } = await supabase
+    .from('job_notes')
+    .insert({ business_id: businessId, job_id: jobId, user_id: userId, body: body.trim() })
+    .select()
+    .single()
+  return data
+}
+
+export async function getJobNotes(jobId) {
+  const { data } = await supabase
+    .from('job_notes')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('created_at')
+  return data || []
 }
 
 // ── Photos ────────────────────────────────────────────────────────────────────
-
-function readPhotos() { return JSON.parse(localStorage.getItem('polyhq_photos') || '[]') }
-function writePhotos(d) { localStorage.setItem('polyhq_photos', JSON.stringify(d)) }
-
-export function addPhoto({ job_id = null, user_id, caption = '', label = 'general', data_url }) {
-  const p = { id: `photo_${Date.now()}`, job_id, user_id, caption, label, data_url, created_at: new Date().toISOString() }
-  writePhotos([...readPhotos(), p])
-  return p
+function dataUrlToBlob(dataUrl) {
+  const [meta, b64] = dataUrl.split(',')
+  const mime = meta.match(/:(.*?);/)[1]
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+  return new Blob([bytes], { type: mime })
 }
 
-export function getAllPhotos() {
-  return readPhotos().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+function withPublicUrl(photo) {
+  const { data } = supabase.storage.from('photos').getPublicUrl(photo.storage_path)
+  return { ...photo, data_url: data.publicUrl }
 }
 
-export function getPhotosByJob(jobId) {
-  return readPhotos().filter(p => p.job_id === jobId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+export async function addPhoto({ job_id = null, user_id, caption = '', label = 'general', data_url }) {
+  const businessId = await biz()
+  const blob = dataUrlToBlob(data_url)
+  const path = `${businessId}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  const { error: uploadErr } = await supabase.storage
+    .from('photos')
+    .upload(path, blob, { contentType: 'image/jpeg' })
+  if (uploadErr) throw new Error(uploadErr.message)
+  const { data, error } = await supabase
+    .from('photos')
+    .insert({ business_id: businessId, job_id: job_id || null, user_id, caption, label, storage_path: path })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return withPublicUrl(data)
 }
 
-export function getPhotosByUser(userId) {
-  return readPhotos().filter(p => p.user_id === userId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+export async function getAllPhotos() {
+  const { data } = await supabase
+    .from('photos')
+    .select('*')
+    .order('created_at', { ascending: false })
+  return (data || []).map(withPublicUrl)
 }
 
-export function deletePhoto(id) {
-  writePhotos(readPhotos().filter(p => p.id !== id))
+export async function getPhotosByJob(jobId) {
+  const { data } = await supabase
+    .from('photos')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('created_at', { ascending: false })
+  return (data || []).map(withPublicUrl)
 }
 
-// ── Combined unread count (for nav badge) ─────────────────────────────────────
+export async function getPhotosByUser(userId) {
+  const { data } = await supabase
+    .from('photos')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  return (data || []).map(withPublicUrl)
+}
 
-export function getUnreadCommsCount(userId) {
-  return getUnreadDMCount(userId) + getUnreadAnnouncementCount(userId)
+export async function deletePhoto(id) {
+  const { data: photo } = await supabase.from('photos').select('storage_path').eq('id', id).single()
+  if (photo) {
+    await supabase.storage.from('photos').remove([photo.storage_path])
+    await supabase.from('photos').delete().eq('id', id)
+  }
+}
+
+// ── Business settings ─────────────────────────────────────────────────────────
+export async function getBusinessSettings() {
+  const businessId = await biz()
+  if (!businessId) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '' }
+  const { data } = await supabase.from('businesses').select('*').eq('id', businessId).single()
+  return data || { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '' }
+}
+
+export async function saveBusinessSettings(updates) {
+  const businessId = await biz()
+  const { name, logo, address, phone, service_radius } = updates
+  await supabase.from('businesses').update({ name, logo, address, phone, service_radius }).eq('id', businessId)
+}
+
+// ── Payroll settings ──────────────────────────────────────────────────────────
+export async function getPayrollSettings() {
+  const businessId = await biz()
+  if (!businessId) return { pay_period: 'biweekly', pay_day: 5, tax_method: 'single' }
+  const { data } = await supabase
+    .from('businesses')
+    .select('pay_period, pay_day, tax_method')
+    .eq('id', businessId)
+    .single()
+  return data || { pay_period: 'biweekly', pay_day: 5, tax_method: 'single' }
+}
+
+export async function savePayrollSettings(settings) {
+  const businessId = await biz()
+  await supabase.from('businesses').update(settings).eq('id', businessId)
+}
+
+// ── Services ──────────────────────────────────────────────────────────────────
+const DEFAULT_SERVICES = [
+  { name: 'Window Washing',         default_price: 0, duration_minutes: 60  },
+  { name: 'Screen Cleaning',        default_price: 0, duration_minutes: 30  },
+  { name: 'Track & Frame Cleaning', default_price: 0, duration_minutes: 45  },
+  { name: 'Pressure Washing',       default_price: 0, duration_minutes: 90  },
+  { name: 'Storm Window Service',   default_price: 0, duration_minutes: 120 },
+]
+
+export async function getServices() {
+  const { data } = await supabase.from('services').select('*').order('created_at')
+  return data || []
+}
+
+export async function addService({ name, default_price = 0, duration_minutes = 60 }) {
+  const businessId = await biz()
+  const { data, error } = await supabase
+    .from('services')
+    .insert({
+      business_id: businessId,
+      name: name.trim(),
+      default_price: parseFloat(default_price) || 0,
+      duration_minutes: parseInt(duration_minutes) || 60,
+    })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateService(id, updates) {
+  await supabase.from('services').update({
+    name: updates.name?.trim(),
+    default_price: parseFloat(updates.default_price) || 0,
+    duration_minutes: parseInt(updates.duration_minutes) || 60,
+  }).eq('id', id)
+}
+
+export async function deleteService(id) {
+  await supabase.from('services').delete().eq('id', id)
+}
+
+export async function seedDefaultServices(businessId) {
+  await supabase.from('services').insert(DEFAULT_SERVICES.map(s => ({ ...s, business_id: businessId })))
 }

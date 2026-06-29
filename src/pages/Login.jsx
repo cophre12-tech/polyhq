@@ -2,10 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const DEMO_ACCOUNTS = [
-  { label: 'Owner', name: 'Sarah Chen', email: 'owner@demo.com', password: 'demo123' },
-]
-
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,14 +12,14 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    await attempt(email, password)
-  }
-
-  async function attempt(em, pw) {
     setError('')
     setLoading(true)
     try {
-      const user = await login(em, pw)
+      const user = await login(email, password)
+      if (!user) {
+        navigate('/signup', { state: { email } })
+        return
+      }
       navigate(['owner', 'co_owner'].includes(user.role) ? '/owner' : '/employee')
     } catch (err) {
       setError(err.message)
@@ -51,6 +47,7 @@ export default function Login() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                autoFocus
                 placeholder="you@company.com"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               />
@@ -89,33 +86,8 @@ export default function Login() {
               Create an account
             </Link>
           </p>
-
-          <div className="mt-6 pt-6 border-t border-slate-800">
-            <p className="text-xs text-slate-500 text-center mb-3 uppercase tracking-widest font-medium">Quick demo</p>
-            <div className="space-y-2">
-              {DEMO_ACCOUNTS.map(a => (
-                <button
-                  key={a.email}
-                  onClick={() => attempt(a.email, a.password)}
-                  disabled={loading}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-colors disabled:opacity-50 text-left group"
-                >
-                  <div>
-                    <p className="text-sm text-slate-200 font-medium">{a.name}</p>
-                    <p className="text-xs text-slate-500">{a.email}</p>
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    a.label === 'Owner'
-                      ? 'bg-indigo-500/20 text-indigo-400'
-                      : 'bg-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {a.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
+
         <p className="text-center text-xs text-slate-600 mt-6">
           By signing in you agree to our{' '}
           <Link to="/terms" className="text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors">Terms of Service</Link>

@@ -17,6 +17,7 @@ import TermsPage from './pages/TermsPage.jsx'
 import PrivacyPage from './pages/PrivacyPage.jsx'
 import OwnerCommsPage from './pages/OwnerCommsPage.jsx'
 import EmployeeCommsPage from './pages/EmployeeCommsPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
 
 function AuthLayout() {
   const { user } = useAuth()
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/owner/invoices/:id/edit" element={<RoleGuard role="owner"><InvoiceEditorPage /></RoleGuard>} />
         <Route path="/owner/comms" element={<RoleGuard role="owner"><OwnerCommsPage /></RoleGuard>} />
         <Route path="/employee/comms" element={<RoleGuard role="employee"><EmployeeCommsPage /></RoleGuard>} />
+        <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />
         <Route path="/employee" element={<RoleGuard role="employee"><EmployeeDashboard /></RoleGuard>} />
       </Route>
     </Routes>

@@ -6,31 +6,33 @@ export default function OwnerDashboard() {
   const [crew, setCrew] = useState([])
   const [editingRate, setEditingRate] = useState(null)
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     const now = new Date()
-    const weekEntries  = getEntriesInRange(getWeekStart(), now)
-    const todayEntries = getEntriesInRange(getTodayStart(), now)
-    setCrew(
-      getEmployees().map(emp => {
-        const active     = getActiveEntry(emp.id)
-        const weekHours  = weekEntries.filter(e => e.user_id === emp.id).reduce((s, e) => s + entryDuration(e), 0)
-        const todayHours = todayEntries.filter(e => e.user_id === emp.id).reduce((s, e) => s + entryDuration(e), 0)
-        return { ...emp, active, weekHours, todayHours, weekPay: weekHours * (emp.hourly_rate || 0) }
-      })
-    )
+    const [employees, weekEntries, todayEntries] = await Promise.all([
+      getEmployees(),
+      getEntriesInRange(getWeekStart(), now),
+      getEntriesInRange(getTodayStart(), now),
+    ])
+    const activeEntries = await Promise.all(employees.map(emp => getActiveEntry(emp.id)))
+    setCrew(employees.map((emp, i) => {
+      const active     = activeEntries[i]
+      const weekHours  = weekEntries.filter(e => e.user_id === emp.id).reduce((s, e) => s + entryDuration(e), 0)
+      const todayHours = todayEntries.filter(e => e.user_id === emp.id).reduce((s, e) => s + entryDuration(e), 0)
+      return { ...emp, active, weekHours, todayHours, weekPay: weekHours * (emp.hourly_rate || 0) }
+    }))
   }, [])
 
   useEffect(() => { refresh(); const id = setInterval(refresh, 30000); return () => clearInterval(id) }, [refresh])
 
-  function commitRate(empId) {
+  async function commitRate(empId) {
     const rate = parseFloat(editingRate.value)
-    if (!isNaN(rate) && rate >= 0) { updateEmployeeRate(empId, rate); refresh() }
+    if (!isNaN(rate) && rate >= 0) { await updateEmployeeRate(empId, rate); refresh() }
     setEditingRate(null)
   }
 
-  const clockedIn       = crew.filter(e => e.active).length
-  const totalWeekHours  = crew.reduce((s, e) => s + e.weekHours, 0)
-  const totalWeekPay    = crew.reduce((s, e) => s + e.weekPay, 0)
+  const clockedIn      = crew.filter(e => e.active).length
+  const totalWeekHours = crew.reduce((s, e) => s + e.weekHours, 0)
+  const totalWeekPay   = crew.reduce((s, e) => s + e.weekPay, 0)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
@@ -39,12 +41,11 @@ export default function OwnerDashboard() {
         <p className="text-slate-400 mt-1 text-sm">Live crew status and weekly overview</p>
       </div>
 
-      {/* Stat cards — 2×2 on mobile, 4 across on sm+ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard label="Total Crew"      value={crew.length} />
-        <StatCard label="Clocked In"      value={clockedIn}                       accent="emerald" />
+        <StatCard label="Clocked In"      value={clockedIn}                   accent="emerald" />
         <StatCard label="Hours This Week" value={formatHours(totalWeekHours)} />
-        <StatCard label="Week Pay Est."   value={formatCurrency(totalWeekPay)}     accent="indigo" />
+        <StatCard label="Week Pay Est."   value={formatCurrency(totalWeekPay)} accent="indigo" />
       </div>
 
       <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">

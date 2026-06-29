@@ -19,6 +19,7 @@ const OWNER_SIDEBAR_LINKS = [
   { to: '/owner/crew',      label: 'Crew',      icon: UsersIcon },
   { to: '/owner/payroll',   label: 'Payroll',   icon: DollarIcon },
   { to: '/owner/comms',     label: 'Chat',      icon: ChatIcon },
+  { to: '/owner/settings',  label: 'Settings',  icon: GearIcon },
 ]
 
 const OWNER_FINANCE_LINKS = [
@@ -41,10 +42,14 @@ export default function Layout() {
   const bottomLinks = isOwner ? OWNER_LINKS : EMPLOYEE_LINKS
 
   useEffect(() => {
-    function check() { setUnreadComms(getUnreadCommsCount(user.id)) }
+    let mounted = true
+    async function check() {
+      const count = await getUnreadCommsCount(user.id)
+      if (mounted) setUnreadComms(count)
+    }
     check()
-    const id = setInterval(check, 3000)
-    return () => clearInterval(id)
+    const id = setInterval(check, 5000)
+    return () => { mounted = false; clearInterval(id) }
   }, [user.id])
 
   function handleLogout() {
@@ -119,8 +124,34 @@ export default function Layout() {
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <main className="md:ml-60 min-h-screen pb-20 md:pb-0">
-        <Outlet />
+      <main className="md:ml-60 min-h-screen pb-20 md:pb-0 relative">
+        {/* Mobile top header */}
+        <header className="md:hidden sticky top-0 z-30 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 flex items-center justify-between px-4 h-12 shrink-0">
+          <span className="text-base font-bold text-white">Poly<span className="text-indigo-400">HQ</span></span>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              title="Sign out"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile background watermark */}
+        <div className="md:hidden fixed inset-x-0 top-12 bottom-16 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+          <div className="opacity-[0.035] text-center -rotate-12">
+            <p className="font-black tracking-tight text-white leading-none" style={{ fontSize: '22vw' }}>Poly</p>
+            <p className="font-black tracking-tight text-indigo-400 leading-none" style={{ fontSize: '28vw' }}>HQ</p>
+          </div>
+        </div>
+        <div className="relative z-10">
+          <Outlet />
+        </div>
       </main>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────── */}
@@ -144,12 +175,6 @@ export default function Layout() {
             </NavLink>
           )
         })}
-        {/* Bell for employees only (owners have 6 tabs, no room) */}
-        {!isOwner && (
-          <div className="flex-1 flex flex-col items-center justify-center py-2">
-            <NotificationBell />
-          </div>
-        )}
       </nav>
     </div>
   )
@@ -210,6 +235,15 @@ function ClockIcon({ size }) {
   return (
     <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+    </svg>
+  )
+}
+function GearIcon({ size }) {
+  const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   )
 }

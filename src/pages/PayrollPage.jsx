@@ -1,35 +1,52 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getEmployees, getEntriesInRange, entryDuration, getWeekStart } from '../lib/db.js'
 import { calcPayroll, formatCurrency, formatHours } from '../lib/payroll.js'
 
 export default function PayrollPage() {
   const [periodIdx, setPeriodIdx] = useState(0)
+  const [rows, setRows] = useState([])
 
   const periods = useMemo(() => {
     const thisMonday = getWeekStart(0)
     const lastMonday = getWeekStart(1)
     return [
-      { label: 'This Week',    start: thisMonday,  end: new Date(),   payPeriods: 52 },
-      { label: 'Last Week',    start: lastMonday,  end: thisMonday,   payPeriods: 52 },
-      { label: 'Last 2 Wks',  start: lastMonday,  end: new Date(),   payPeriods: 26 },
-      { label: 'All Time',    start: new Date(0), end: new Date(),   payPeriods: 52 },
+      { label: 'This Week',   start: thisMonday,  end: new Date(),  payPeriods: 52 },
+      { label: 'Last Week',   start: lastMonday,  end: thisMonday,  payPeriods: 52 },
+      { label: 'Last 2 Wks', start: lastMonday,  end: new Date(),  payPeriods: 26 },
+      { label: 'All Time',   start: new Date(0), end: new Date(),  payPeriods: 52 },
     ]
   }, [])
 
   const period = periods[periodIdx]
 
-  const rows = useMemo(() => {
-    return getEmployees().map(emp => {
-      const hours = getEntriesInRange(period.start, period.end, emp.id).reduce((s, e) => s + entryDuration(e), 0)
-      const pay   = calcPayroll(hours, emp.hourly_rate || 0, period.payPeriods)
-      return { ...emp, ...pay }
-    })
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      const employees = await getEmployees()
+      const rowData = await Promise.all(employees.map(async emp => {
+        const entries = await getEntriesInRange(period.start, period.end, emp.id)
+        const hours = entries.reduce((s, e) => s + entryDuration(e), 0)
+        const pay = calcPayroll(hours, emp.hourly_rate || 0, period.payPeriods)
+        return { ...emp, ...pay }
+      }))
+      if (mounted) setRows(rowData)
+    }
+    load()
+    return () => { mounted = false }
   }, [period])
 
-  const totals = rows.reduce(
-    (acc, r) => ({ hours: acc.hours+r.hours, gross: acc.gross+r.gross, federalTax: acc.federalTax+r.federalTax, socialSecurity: acc.socialSecurity+r.socialSecurity, medicare: acc.medicare+r.medicare, totalDeductions: acc.totalDeductions+r.totalDeductions, netPay: acc.netPay+r.netPay }),
-    { hours:0, gross:0, federalTax:0, socialSecurity:0, medicare:0, totalDeductions:0, netPay:0 }
-  )
+  const totals = useMemo(() => rows.reduce(
+    (acc, r) => ({
+      hours: acc.hours + r.hours,
+      gross: acc.gross + r.gross,
+      federalTax: acc.federalTax + r.federalTax,
+      socialSecurity: acc.socialSecurity + r.socialSecurity,
+      medicare: acc.medicare + r.medicare,
+      totalDeductions: acc.totalDeductions + r.totalDeductions,
+      netPay: acc.netPay + r.netPay,
+    }),
+    { hours: 0, gross: 0, federalTax: 0, socialSecurity: 0, medicare: 0, totalDeductions: 0, netPay: 0 }
+  ), [rows])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
@@ -38,7 +55,6 @@ export default function PayrollPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-white">Payroll</h1>
           <p className="text-slate-400 mt-1 text-sm">Gross pay with federal, SS & Medicare deductions</p>
         </div>
-        {/* Period buttons — scrollable row on mobile */}
         <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
           {periods.map((p, i) => (
             <button key={i} onClick={() => setPeriodIdx(i)}
@@ -49,7 +65,6 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <SummaryCard label="Total Gross"      value={formatCurrency(totals.gross)} />
         <SummaryCard label="Federal Tax"      value={formatCurrency(totals.federalTax)}      accent="rose" />
@@ -72,6 +87,9 @@ export default function PayrollPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
+              {rows.length === 0 && (
+                <tr><td colSpan={8} className="px-6 py-10 text-center text-slate-500 text-sm">No employees yet.</td></tr>
+              )}
               {rows.map(emp => (
                 <tr key={emp.id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="px-6 py-4">
@@ -92,16 +110,18 @@ export default function PayrollPage() {
                   <td className="px-6 py-4 text-right font-bold text-emerald-400 tabular-nums">{formatCurrency(emp.netPay)}</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-slate-700 bg-slate-800/50">
-                <td className="px-6 py-4 font-bold text-white">Totals</td>
-                <td className="px-6 py-4 text-right font-semibold text-white tabular-nums">{formatHours(totals.hours)}</td>
-                <td className="px-6 py-4" />
-                <td className="px-6 py-4 text-right font-semibold text-white tabular-nums">{formatCurrency(totals.gross)}</td>
-                <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.federalTax)}</td>
-                <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.socialSecurity)}</td>
-                <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.medicare)}</td>
-                <td className="px-6 py-4 text-right font-bold text-emerald-400 tabular-nums text-base">{formatCurrency(totals.netPay)}</td>
-              </tr>
+              {rows.length > 0 && (
+                <tr className="border-t-2 border-slate-700 bg-slate-800/50">
+                  <td className="px-6 py-4 font-bold text-white">Totals</td>
+                  <td className="px-6 py-4 text-right font-semibold text-white tabular-nums">{formatHours(totals.hours)}</td>
+                  <td className="px-6 py-4" />
+                  <td className="px-6 py-4 text-right font-semibold text-white tabular-nums">{formatCurrency(totals.gross)}</td>
+                  <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.federalTax)}</td>
+                  <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.socialSecurity)}</td>
+                  <td className="px-6 py-4 text-right font-semibold text-rose-400 tabular-nums">{formatCurrency(totals.medicare)}</td>
+                  <td className="px-6 py-4 text-right font-bold text-emerald-400 tabular-nums text-base">{formatCurrency(totals.netPay)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -109,6 +129,9 @@ export default function PayrollPage() {
 
       {/* Mobile cards */}
       <div className="sm:hidden space-y-3 mb-4">
+        {rows.length === 0 && (
+          <p className="text-center text-slate-500 text-sm py-10">No employees yet.</p>
+        )}
         {rows.map(emp => (
           <div key={emp.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-4">

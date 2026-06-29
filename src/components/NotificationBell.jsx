@@ -21,20 +21,32 @@ const TYPE_ICON = {
 
 export default function NotificationBell() {
   const { user }    = useAuth()
-  const [open, setOpen]   = useState(false)
+  const [open, setOpen]     = useState(false)
   const [notifs, setNotifs] = useState([])
   const [unread, setUnread] = useState(0)
   const ref = useRef(null)
 
-  function load() {
-    setNotifs(getNotifications(user.id))
-    setUnread(getUnreadCount(user.id))
+  async function load() {
+    const [n, u] = await Promise.all([
+      getNotifications(user.id),
+      getUnreadCount(user.id),
+    ])
+    setNotifs(n)
+    setUnread(u)
   }
 
   useEffect(() => {
-    load()
-    const id = setInterval(load, 4000)
-    return () => clearInterval(id)
+    let mounted = true
+    async function check() {
+      const [n, u] = await Promise.all([
+        getNotifications(user.id),
+        getUnreadCount(user.id),
+      ])
+      if (mounted) { setNotifs(n); setUnread(u) }
+    }
+    check()
+    const id = setInterval(check, 5000)
+    return () => { mounted = false; clearInterval(id) }
   }, [user.id])
 
   // Request browser notification permission once
@@ -44,7 +56,7 @@ export default function NotificationBell() {
     }
   }, [])
 
-  // Trigger browser notification when new unread arrives (same session)
+  // Trigger browser notification when new unread arrives
   const prevUnread = useRef(0)
   useEffect(() => {
     if (unread > prevUnread.current && prevUnread.current >= 0) {
@@ -64,12 +76,14 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
 
-  function clickNotif(id) {
-    markNotificationRead(id); load()
+  async function clickNotif(id) {
+    await markNotificationRead(id)
+    load()
   }
 
-  function markAll() {
-    markAllNotificationsRead(user.id); load()
+  async function markAll() {
+    await markAllNotificationsRead(user.id)
+    load()
   }
 
   return (

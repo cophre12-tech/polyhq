@@ -19,7 +19,7 @@ export default function InvoicesPage() {
   const [clientSearch, setClientSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
 
-  function load() { setInvoices(getAllInvoices()) }
+  async function load() { setInvoices(await getAllInvoices()) }
   useEffect(() => { load() }, [])
 
   const overdue = invoices.filter(inv => inv.status === 'overdue')
@@ -32,8 +32,8 @@ export default function InvoicesPage() {
 
   const totalValue = filtered.reduce((s, inv) => s + (inv.total || 0), 0)
 
-  function handleDelete(id) {
-    deleteInvoice(id)
+  async function handleDelete(id) {
+    await deleteInvoice(id)
     setConfirmDelete(null)
     load()
   }

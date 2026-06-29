@@ -34,17 +34,18 @@ export default function InvoiceEditorPage() {
 
   useEffect(() => {
     if (!isEdit) return
-    const inv = getInvoiceById(id)
-    if (!inv) { navigate('/owner/invoices'); return }
-    setForm({
-      client_name:    inv.client_name    ?? '',
-      client_email:   inv.client_email   ?? '',
-      client_address: inv.client_address ?? '',
-      service_date:   inv.service_date   ?? TODAY,
-      due_date:       inv.due_date       ?? due30(),
-      notes:          inv.notes          ?? '',
+    getInvoiceById(id).then(inv => {
+      if (!inv) { navigate('/owner/invoices'); return }
+      setForm({
+        client_name:    inv.client_name    ?? '',
+        client_email:   inv.client_email   ?? '',
+        client_address: inv.client_address ?? '',
+        service_date:   inv.service_date   ?? TODAY,
+        due_date:       inv.due_date       ?? due30(),
+        notes:          inv.notes          ?? '',
+      })
+      setItems(inv.line_items?.length ? inv.line_items : [newItem()])
     })
-    setItems(inv.line_items?.length ? inv.line_items : [newItem()])
   }, [id, isEdit, navigate])
 
   function setField(f, v) { setForm(p => ({ ...p, [f]: v })) }
@@ -79,10 +80,10 @@ export default function InvoiceEditorPage() {
     }
     try {
       if (isEdit) {
-        updateInvoice(id, payload)
+        await updateInvoice(id, payload)
         navigate(`/owner/invoices/${id}`)
       } else {
-        const inv = createInvoice(payload)
+        const inv = await createInvoice(payload)
         navigate(`/owner/invoices/${inv.id}`)
       }
     } finally {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   getOwners, getJobsForEmployee,
@@ -59,33 +59,43 @@ export default function EmployeeCommsPage() {
 
 /* ── Messages Tab ───────────────────────────────────────────────────────────── */
 function MessagesTab({ user }) {
-  const [owner]     = useState(() => getOwners()[0] || null)
-  const [thread, setThread] = useState([])
-  const [input, setInput]   = useState('')
+  const [owner, setOwner]     = useState(null)
+  const [thread, setThread]   = useState([])
+  const [input, setInput]     = useState('')
   const bottomRef = useRef(null)
 
-  function loadThread() {
+  useEffect(() => {
+    let mounted = true
+    getOwners().then(owners => { if (mounted) setOwner(owners[0] || null) })
+    return () => { mounted = false }
+  }, [])
+
+  const loadThread = useCallback(async () => {
     if (!owner) return
-    setThread(getDMThread(user.id, owner.id))
-    markThreadRead(user.id, owner.id)
-  }
+    const t = await getDMThread(user.id, owner.id)
+    setThread(t)
+    await markThreadRead(user.id, owner.id)
+  }, [owner, user.id])
 
   useEffect(() => {
-    loadThread()
-    const id = setInterval(loadThread, 3000)
-    return () => clearInterval(id)
-  }, [owner?.id])
+    if (!owner) return
+    let mounted = true
+    async function tick() { if (mounted) await loadThread() }
+    tick()
+    const id = setInterval(tick, 3000)
+    return () => { mounted = false; clearInterval(id) }
+  }, [owner, loadThread])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [thread.length])
 
-  function handleSend(e) {
+  async function handleSend(e) {
     e.preventDefault()
     if (!input.trim() || !owner) return
-    sendDM(user.id, owner.id, input.trim())
+    await sendDM(user.id, owner.id, input.trim())
     setInput('')
-    loadThread()
+    await loadThread()
   }
 
   if (!owner) {
@@ -148,12 +158,20 @@ function AnnouncementsTab({ user }) {
   const [announcements, setAnnouncements] = useState([])
 
   useEffect(() => {
-    const list = getAnnouncements()
-    setAnnouncements(list)
-    list.forEach(a => {
-      if (!a.read_by.includes(user.id)) markAnnouncementRead(user.id, a.id)
-    })
-  }, [])
+    let mounted = true
+    async function load() {
+      const list = await getAnnouncements()
+      if (!mounted) return
+      setAnnouncements(list)
+      await Promise.all(
+        list
+          .filter(a => !(a.read_by || []).includes(user.id))
+          .map(a => markAnnouncementRead(user.id, a.id))
+      )
+    }
+    load()
+    return () => { mounted = false }
+  }, [user.id])
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -165,7 +183,7 @@ function AnnouncementsTab({ user }) {
       ) : (
         <div className="divide-y divide-slate-800/60">
           {announcements.map(a => {
-            const unread = !a.read_by.includes(user.id)
+            const unread = !(a.read_by || []).includes(user.id)
             return (
               <div key={a.id} className={`px-5 py-4 ${unread ? 'bg-indigo-500/5' : ''}`}>
                 <div className="flex items-start gap-3">
@@ -186,19 +204,20 @@ function AnnouncementsTab({ user }) {
 
 /* ── Photos Tab ─────────────────────────────────────────────────────────────── */
 function PhotosTab({ user }) {
-  const [jobs, setJobs]       = useState([])
-  const [myPhotos, setMyPhotos] = useState([])
-  const [form, setForm]       = useState({ job_id: '', label: 'before', caption: '' })
+  const [jobs, setJobs]           = useState([])
+  const [myPhotos, setMyPhotos]   = useState([])
+  const [form, setForm]           = useState({ job_id: '', label: 'before', caption: '' })
   const [uploading, setUploading] = useState(false)
-  const [error, setError]     = useState('')
-  const [success, setSuccess] = useState('')
+  const [error, setError]         = useState('')
+  const [success, setSuccess]     = useState('')
   const fileRef = useRef(null)
 
-  function load() {
-    setJobs(getJobsForEmployee(user.id))
-    setMyPhotos(getPhotosByUser(user.id))
+  async function load() {
+    const [j, p] = await Promise.all([getJobsForEmployee(user.id), getPhotosByUser(user.id)])
+    setJobs(j)
+    setMyPhotos(p)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [user.id])
 
   async function handleUpload(e) {
     e.preventDefault()
@@ -208,13 +227,13 @@ function PhotosTab({ user }) {
     setError(''); setSuccess(''); setUploading(true)
     try {
       const data_url = await compressImage(file)
-      addPhoto({ job_id: form.job_id || null, user_id: user.id, caption: form.caption, label: form.label, data_url })
+      await addPhoto({ job_id: form.job_id || null, user_id: user.id, caption: form.caption, label: form.label, data_url })
       setSuccess('Photo uploaded!')
       setForm({ job_id: '', label: 'before', caption: '' })
       if (fileRef.current) fileRef.current.value = ''
       load()
     } catch {
-      setError('Failed to process image. Try a smaller photo.')
+      setError('Failed to upload photo. Try a smaller image.')
     } finally {
       setUploading(false)
     }
@@ -222,7 +241,6 @@ function PhotosTab({ user }) {
 
   return (
     <div className="space-y-6">
-      {/* Upload form */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-white mb-4">Upload a Job Photo</h3>
         <form onSubmit={handleUpload} className="space-y-4">
@@ -273,7 +291,6 @@ function PhotosTab({ user }) {
         </form>
       </div>
 
-      {/* My photos */}
       {myPhotos.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-white mb-3">My Uploaded Photos</h3>

@@ -23,8 +23,8 @@ export default function InvoiceViewPage() {
   const [invoice, setInvoice] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  function load() {
-    const inv = getInvoiceById(id)
+  async function load() {
+    const inv = await getInvoiceById(id)
     if (!inv) { navigate('/owner/invoices'); return }
     setInvoice(inv)
   }
@@ -35,16 +35,16 @@ export default function InvoiceViewPage() {
   const meta    = STATUS_META[invoice.status] || STATUS_META.draft
   const subtotal = (invoice.line_items || []).reduce((s, it) => s + it.quantity * it.unit_price, 0)
 
-  function advance() {
+  async function advance() {
     if (!meta.next) return
     const updates = { status: meta.next }
     if (meta.next === 'sent')  updates.sent_at = new Date().toISOString()
     if (meta.next === 'paid')  updates.paid_at = new Date().toISOString()
-    updateInvoice(id, updates)
+    await updateInvoice(id, updates)
     load()
   }
 
-  function sendEmail() {
+  async function sendEmail() {
     const subject = encodeURIComponent(`Invoice ${invoice.number} from PolyHQ`)
     const lineList = (invoice.line_items || [])
       .map(it => `  • ${it.description}: ${it.quantity} × $${Number(it.unit_price).toFixed(2)} = $${(it.quantity * it.unit_price).toFixed(2)}`)
@@ -70,7 +70,7 @@ PolyHQ`
     )
     window.location.href = `mailto:${invoice.client_email || ''}?subject=${subject}&body=${body}`
     if (invoice.status === 'draft') {
-      updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
+      await updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
       load()
     }
   }
@@ -191,8 +191,8 @@ ${invoice.notes ? `<div class="notes"><label>Notes</label><p>${escHtml(invoice.n
     setTimeout(() => win.print(), 300)
   }
 
-  function handleDelete() {
-    deleteInvoice(id)
+  async function handleDelete() {
+    await deleteInvoice(id)
     navigate('/owner/invoices')
   }
 

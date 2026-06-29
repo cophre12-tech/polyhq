@@ -51,9 +51,10 @@ export default function AccountingPage() {
   const [revenue, setRevenue] = useState([])
   const [expenses, setExpenses] = useState([])
 
-  function load() {
-    setRevenue(getAllRevenue())
-    setExpenses(getAllExpenses())
+  async function load() {
+    const [rev, exp] = await Promise.all([getAllRevenue(), getAllExpenses()])
+    setRevenue(rev)
+    setExpenses(exp)
   }
   useEffect(() => { load() }, [])
 

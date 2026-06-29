@@ -25,9 +25,10 @@ export default function EmployeeSchedulePage() {
   const [jobs, setJobs] = useState([])
   const [unavailable, setUnavailable] = useState([])
 
-  function load() {
-    setJobs(getJobsForEmployee(user.id))
-    setUnavailable(getAvailability(user.id))
+  async function load() {
+    const [j, av] = await Promise.all([getJobsForEmployee(user.id), getAvailability(user.id)])
+    setJobs(j)
+    setUnavailable(av)
   }
   useEffect(() => { load() }, [user.id])
 
@@ -41,13 +42,15 @@ export default function EmployeeSchedulePage() {
     return acc
   }, {})
 
-  function handleStatus(jobId, status) {
-    updateJob(jobId, { status }); load()
+  async function handleStatus(jobId, status) {
+    await updateJob(jobId, { status })
+    load()
   }
 
-  function handleToggle(date) {
-    toggleUnavailableDate(user.id, date)
-    setUnavailable(getAvailability(user.id))
+  async function handleToggle(date) {
+    await toggleUnavailableDate(user.id, date)
+    const av = await getAvailability(user.id)
+    setUnavailable(av)
   }
 
   return (

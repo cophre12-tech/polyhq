@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   getEmployees, getAllJobs,
@@ -61,54 +61,65 @@ export default function OwnerCommsPage() {
 
 /* ── Messages Tab ───────────────────────────────────────────────────────────── */
 function MessagesTab({ user }) {
-  const [employees, setEmployees] = useState([])
-  const [selected, setSelected]   = useState(null)
-  const [thread, setThread]       = useState([])
-  const [input, setInput]         = useState('')
+  const [employees, setEmployees]   = useState([])
+  const [summaries, setSummaries]   = useState({})  // { [empId]: { last, unread } }
+  const [selected, setSelected]     = useState(null)
+  const [thread, setThread]         = useState([])
+  const [input, setInput]           = useState('')
   const [mobileView, setMobileView] = useState('list')
   const bottomRef = useRef(null)
 
-  useEffect(() => { setEmployees(getEmployees()) }, [])
+  useEffect(() => {
+    let mounted = true
+    getEmployees().then(emps => { if (mounted) setEmployees(emps) })
+    return () => { mounted = false }
+  }, [])
 
-  function loadThread(emp) {
+  const loadSummaries = useCallback(async () => {
+    if (!employees.length) return
+    const results = await Promise.all(employees.map(async emp => {
+      const t = await getDMThread(user.id, emp.id)
+      const unread = t.filter(m => m.from_id === emp.id && !m.read).length
+      return [emp.id, { last: t[t.length - 1] || null, unread }]
+    }))
+    setSummaries(Object.fromEntries(results))
+  }, [employees, user.id])
+
+  useEffect(() => { loadSummaries() }, [loadSummaries])
+
+  const loadThread = useCallback(async (emp) => {
     if (!emp) return
-    setThread(getDMThread(user.id, emp.id))
-    markThreadRead(user.id, emp.id)
-  }
+    const t = await getDMThread(user.id, emp.id)
+    setThread(t)
+    await markThreadRead(user.id, emp.id)
+    setSummaries(s => ({ ...s, [emp.id]: { ...s[emp.id], unread: 0, last: t[t.length - 1] || null } }))
+  }, [user.id])
 
   useEffect(() => {
     if (!selected) return
-    loadThread(selected)
-    const id = setInterval(() => loadThread(selected), 3000)
-    return () => clearInterval(id)
-  }, [selected?.id])
+    let mounted = true
+    async function tick() { if (mounted) await loadThread(selected) }
+    tick()
+    const id = setInterval(tick, 3000)
+    return () => { mounted = false; clearInterval(id) }
+  }, [selected?.id, loadThread])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [thread.length])
 
-  function select(emp) {
+  async function select(emp) {
     setSelected(emp)
     setMobileView('thread')
-    setThread(getDMThread(user.id, emp.id))
-    markThreadRead(user.id, emp.id)
+    await loadThread(emp)
   }
 
-  function handleSend(e) {
+  async function handleSend(e) {
     e.preventDefault()
     if (!input.trim() || !selected) return
-    sendDM(user.id, selected.id, input.trim())
+    await sendDM(user.id, selected.id, input.trim())
     setInput('')
-    loadThread(selected)
-  }
-
-  function lastMsg(empId) {
-    const t = getDMThread(user.id, empId)
-    return t[t.length - 1] || null
-  }
-
-  function unreadFrom(empId) {
-    return getDMThread(user.id, empId).filter(m => m.from_id === empId && m.to_id === user.id && !m.read).length
+    await loadThread(selected)
   }
 
   const EmployeeList = (
@@ -121,8 +132,7 @@ function MessagesTab({ user }) {
       )}
       <div className="divide-y divide-slate-800/60">
         {employees.map(emp => {
-          const last   = lastMsg(emp.id)
-          const unread = unreadFrom(emp.id)
+          const s = summaries[emp.id]
           return (
             <button key={emp.id} onClick={() => select(emp)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-800/50 transition-colors text-left ${selected?.id === emp.id ? 'bg-slate-800' : ''}`}>
@@ -130,23 +140,24 @@ function MessagesTab({ user }) {
                 <div className="w-9 h-9 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-sm font-bold">
                   {emp.name[0]}
                 </div>
-                {unread > 0 && (
+                {s?.unread > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-rose-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center px-0.5">
-                    {unread}
+                    {s.unread}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={`text-sm font-medium truncate ${unread > 0 ? 'text-white' : 'text-slate-200'}`}>{emp.name}</p>
-                  {last && <span className="text-xs text-slate-500 shrink-0">{timeStr(last.created_at)}</span>}
+                  <p className={`text-sm font-medium truncate ${s?.unread > 0 ? 'text-white' : 'text-slate-200'}`}>{emp.name}</p>
+                  {s?.last && <span className="text-xs text-slate-500 shrink-0">{timeStr(s.last.created_at)}</span>}
                 </div>
-                {last && (
-                  <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'text-slate-300' : 'text-slate-500'}`}>
-                    {last.from_id === user.id ? 'You: ' : ''}{last.body}
+                {s?.last ? (
+                  <p className={`text-xs truncate mt-0.5 ${s.unread > 0 ? 'text-slate-300' : 'text-slate-500'}`}>
+                    {s.last.from_id === user.id ? 'You: ' : ''}{s.last.body}
                   </p>
+                ) : (
+                  <p className="text-xs text-slate-600 mt-0.5">No messages yet</p>
                 )}
-                {!last && <p className="text-xs text-slate-600 mt-0.5">No messages yet</p>}
               </div>
             </button>
           )
@@ -222,16 +233,20 @@ function MessagesTab({ user }) {
 /* ── Broadcast Tab ──────────────────────────────────────────────────────────── */
 function BroadcastTab({ user }) {
   const [announcements, setAnnouncements] = useState([])
+  const [employees, setEmployees] = useState([])
   const [input, setInput] = useState('')
-  const employees = getEmployees()
 
-  function load() { setAnnouncements(getAnnouncements()) }
+  async function load() {
+    const [anns, emps] = await Promise.all([getAnnouncements(), getEmployees()])
+    setAnnouncements(anns)
+    setEmployees(emps)
+  }
   useEffect(() => { load() }, [])
 
-  function handleSend(e) {
+  async function handleSend(e) {
     e.preventDefault()
     if (!input.trim()) return
-    sendAnnouncement(user.id, input.trim())
+    await sendAnnouncement(user.id, input.trim())
     setInput('')
     load()
   }
@@ -263,12 +278,12 @@ function BroadcastTab({ user }) {
         ) : (
           <div className="divide-y divide-slate-800/60">
             {announcements.map(a => {
-              const readCount = Math.max(0, a.read_by.length - 1) // exclude author
+              const readCount = Math.max(0, (a.read_by?.length || 0) - 1)
               return (
                 <div key={a.id} className="px-5 py-4">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-sm text-slate-200 leading-relaxed flex-1">{a.body}</p>
-                    <button onClick={() => { deleteAnnouncement(a.id); load() }}
+                    <button onClick={async () => { await deleteAnnouncement(a.id); load() }}
                       className="text-slate-600 hover:text-rose-400 transition-colors shrink-0 p-1 -mr-1">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -295,24 +310,28 @@ function BroadcastTab({ user }) {
 /* ── Photos Tab ─────────────────────────────────────────────────────────────── */
 function PhotosTab({ user }) {
   const [photos, setPhotos]         = useState([])
+  const [employees, setEmployees]   = useState([])
   const [filterMode, setFilterMode] = useState('all')
   const [filterJob, setFilterJob]   = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [lightbox, setLightbox]     = useState(null)
   const [jobs, setJobs]             = useState([])
-  const employees = getEmployees()
 
-  function load() {
-    let p = getAllPhotos()
-    if (filterMode === 'job'  && filterJob)  p = getPhotosByJob(filterJob)
-    if (filterMode === 'date' && filterDate) p = p.filter(ph => ph.created_at.startsWith(filterDate))
+  async function load() {
+    const [emps, allJobs] = await Promise.all([getEmployees(), getAllJobs()])
+    setEmployees(emps)
+    setJobs(allJobs)
+    let p
+    if (filterMode === 'job' && filterJob) {
+      p = await getPhotosByJob(filterJob)
+    } else {
+      p = await getAllPhotos()
+      if (filterMode === 'date' && filterDate) p = p.filter(ph => ph.created_at?.startsWith(filterDate))
+    }
     setPhotos(p)
   }
 
-  useEffect(() => {
-    setJobs(getAllJobs())
-    load()
-  }, [filterMode, filterJob, filterDate])
+  useEffect(() => { load() }, [filterMode, filterJob, filterDate])
 
   function empName(uid) {
     const e = employees.find(e => e.id === uid)
@@ -325,15 +344,14 @@ function PhotosTab({ user }) {
     return j ? `${j.client_name} — ${j.service_type}` : null
   }
 
-  function handleDelete(id) {
-    dbDeletePhoto(id)
-    load()
+  async function handleDelete(id) {
+    await dbDeletePhoto(id)
     if (lightbox?.id === id) setLightbox(null)
+    load()
   }
 
   return (
     <div>
-      {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {[['all', 'All Photos'], ['job', 'By Job'], ['date', 'By Date']].map(([mode, label]) => (
           <button key={mode}
@@ -397,7 +415,6 @@ function PhotosTab({ user }) {
         </div>
       )}
 
-      {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}>
@@ -436,23 +453,34 @@ function PhotosTab({ user }) {
 /* ── Job Notes Tab ──────────────────────────────────────────────────────────── */
 function NotesTab({ user }) {
   const [jobs, setJobs]         = useState([])
+  const [employees, setEmployees] = useState([])
   const [selected, setSelected] = useState(null)
   const [notes, setNotes]       = useState([])
   const [input, setInput]       = useState('')
-  const employees = getEmployees()
   const bottomRef = useRef(null)
 
-  useEffect(() => { setJobs(getAllJobs()) }, [])
+  useEffect(() => {
+    let mounted = true
+    Promise.all([getAllJobs(), getEmployees()]).then(([j, e]) => {
+      if (mounted) { setJobs(j); setEmployees(e) }
+    })
+    return () => { mounted = false }
+  }, [])
 
-  function loadNotes(job) {
+  async function loadNotes(job) {
     if (!job) return
-    setNotes(getJobNotes(job.id))
+    const n = await getJobNotes(job.id)
+    setNotes(n)
   }
 
   useEffect(() => {
     loadNotes(selected)
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [selected?.id, notes.length])
+  }, [selected?.id])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [notes.length])
 
   function authorName(uid) {
     if (uid === user.id) return 'You'
@@ -460,17 +488,17 @@ function NotesTab({ user }) {
     return e ? e.name : 'Unknown'
   }
 
-  function handleSelectJob(e) {
+  async function handleSelectJob(e) {
     const job = jobs.find(j => j.id === e.target.value) || null
     setSelected(job)
     setInput('')
-    if (job) setNotes(getJobNotes(job.id))
+    if (job) await loadNotes(job)
   }
 
-  function handleAdd(e) {
+  async function handleAdd(e) {
     e.preventDefault()
     if (!input.trim() || !selected) return
-    addJobNote(selected.id, user.id, input.trim())
+    await addJobNote(selected.id, user.id, input.trim())
     setInput('')
     loadNotes(selected)
   }
