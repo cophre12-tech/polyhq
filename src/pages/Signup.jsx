@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { seedDefaultServices } from '../lib/db.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Signup() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { refreshUser } = useAuth()
   const prefillEmail = location.state?.email || ''
   const [mode, setMode] = useState('owner') // 'owner' | 'employee'
   const [form, setForm] = useState({ businessName: '', name: '', email: prefillEmail, password: '', inviteCode: '' })
@@ -45,6 +47,7 @@ export default function Signup() {
       if (profileErr) throw new Error(profileErr.message)
 
       await seedDefaultServices(business.id)
+      await refreshUser()
       navigate('/owner')
     } catch (err) {
       setError(err.message)
@@ -82,6 +85,7 @@ export default function Signup() {
       })
       if (profileErr) throw new Error(profileErr.message)
 
+      await refreshUser()
       navigate('/employee')
     } catch (err) {
       setError(err.message)
