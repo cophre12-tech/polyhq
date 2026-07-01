@@ -385,6 +385,48 @@ export async function markAllNotificationsRead(userId) {
   await supabase.from('notifications').update({ read: true }).eq('user_id', userId)
 }
 
+// ── Job → Revenue logging ─────────────────────────────────────────────────────
+export async function logJobToRevenue(job) {
+  if (!job.price || job.revenue_logged) return
+  const businessId = job.business_id || await biz()
+  const { error } = await supabase.from('revenue').insert({
+    business_id: businessId,
+    client: job.client_name,
+    service_type: job.service_type,
+    amount: parseFloat(job.price),
+    date: job.date,
+  })
+  if (error) throw new Error(error.message)
+  await supabase.from('jobs').update({ revenue_logged: true }).eq('id', job.id)
+}
+
+export async function autoLogTodayRevenue() {
+  const today = new Date().toISOString().split('T')[0]
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('date', today)
+    .eq('revenue_logged', false)
+    .not('price', 'is', null)
+    .gt('price', 0)
+  if (!jobs?.length) return 0
+  let logged = 0
+  for (const job of jobs) {
+    try {
+      await supabase.from('revenue').insert({
+        business_id: job.business_id,
+        client: job.client_name,
+        service_type: job.service_type,
+        amount: parseFloat(job.price),
+        date: job.date,
+      })
+      await supabase.from('jobs').update({ revenue_logged: true }).eq('id', job.id)
+      logged++
+    } catch {}
+  }
+  return logged
+}
+
 // ── Revenue ───────────────────────────────────────────────────────────────────
 export async function addRevenue(data) {
   const businessId = await biz()

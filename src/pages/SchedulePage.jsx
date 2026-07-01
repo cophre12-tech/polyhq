@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   getJobsInRange, createJob, updateJob, deleteJob,
   getEmployees, getAllAvailability, getServices,
+  logJobToRevenue, autoLogTodayRevenue,
 } from '../lib/db.js'
 
 const RECURRING_OPTS = [
@@ -39,6 +40,7 @@ function makeEmpty(defaultDate = '') {
     client_name: '', client_address: '', service_type: '',
     date: defaultDate, start_time: '08:00', end_time: '10:00',
     assigned_to: [], recurring: '', recurring_end: '', notes: '', status: 'scheduled',
+    price: '',
   }
 }
 
@@ -90,6 +92,18 @@ export default function SchedulePage() {
       .filter(Boolean)
   }
 
+  // Auto-log today's priced jobs to revenue at 5 PM
+  useEffect(() => {
+    function checkAutoLog() {
+      if (new Date().getHours() >= 17) {
+        autoLogTodayRevenue().then(n => { if (n > 0) load() })
+      }
+    }
+    checkAutoLog()
+    const id = setInterval(checkAutoLog, 60000)
+    return () => clearInterval(id)
+  }, [])
+
   async function handleSave(data) {
     if (modal.type === 'create') await createJob(data)
     else await updateJob(modal.job.id, data)
@@ -98,6 +112,11 @@ export default function SchedulePage() {
 
   async function handleDelete(id, allInSeries) {
     await deleteJob(id, allInSeries); setModal(null); load()
+  }
+
+  async function handleLogRevenue(job) {
+    await logJobToRevenue(job)
+    setModal(null); load()
   }
 
   function onDragStart(e, job) {
@@ -199,7 +218,10 @@ export default function SchedulePage() {
                     >
                       <div className="flex items-start justify-between gap-1">
                         <p className="text-xs font-semibold text-white leading-tight truncate flex-1">{job.client_name}</p>
-                        {job.recurring && <span className="text-slate-600 text-xs shrink-0">↻</span>}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {job.revenue_logged && <span className="text-emerald-400 text-xs font-bold" title="Logged to revenue">$</span>}
+                          {job.recurring && <span className="text-slate-600 text-xs">↻</span>}
+                        </div>
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">{job.service_type}</p>
                       {job.start_time && (
@@ -303,6 +325,9 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <p className="font-semibold text-white">{job.client_name}</p>
                         {job.recurring && <span className="text-xs text-slate-500">↻</span>}
+                        {job.revenue_logged && (
+                          <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Logged</span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-400">{job.service_type}</p>
                       {job.client_address && <p className="text-xs text-slate-500 mt-0.5 truncate">{job.client_address}</p>}
@@ -356,6 +381,7 @@ export default function SchedulePage() {
           employees={employees}
           onSave={handleSave}
           onDelete={handleDelete}
+          onLogRevenue={handleLogRevenue}
           onClose={() => setModal(null)}
         />
       )}
@@ -365,14 +391,20 @@ export default function SchedulePage() {
 
 // ── Job Modal ─────────────────────────────────────────────────────────────────
 
-function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose }) {
+function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onLogRevenue, onClose }) {
   const isEdit = type === 'edit'
   const [services, setServices] = useState([])
   const [form, setForm] = useState(() => isEdit
-    ? { client_name: job.client_name??'', client_address: job.client_address??'', service_type: job.service_type??'', date: job.date??'', start_time: job.start_time??'08:00', end_time: job.end_time??'10:00', assigned_to: job.assigned_to??[], recurring: job.recurring??'', recurring_end: job.recurring_end??'', notes: job.notes??'', status: job.status??'scheduled' }
+    ? { client_name: job.client_name??'', client_address: job.client_address??'', service_type: job.service_type??'', date: job.date??'', start_time: job.start_time??'08:00', end_time: job.end_time??'10:00', assigned_to: job.assigned_to??[], recurring: job.recurring??'', recurring_end: job.recurring_end??'', notes: job.notes??'', status: job.status??'scheduled', price: job.price??'' }
     : makeEmpty(defaultDate)
   )
   const [delConfirm, setDelConfirm] = useState(false)
+  const [logging, setLogging] = useState(false)
+
+  async function handleLogRevenue() {
+    setLogging(true)
+    try { await onLogRevenue(job) } finally { setLogging(false) }
+  }
 
   useEffect(() => {
     getServices().then(svcs => {
@@ -398,7 +430,10 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose
           </button>
         </div>
 
-        <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="p-5 sm:p-6 space-y-4">
+        <form onSubmit={e => {
+          e.preventDefault()
+          onSave({ ...form, price: form.price !== '' ? parseFloat(form.price) : null })
+        }} className="p-5 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <MField label="Client Name *">
               <input type="text" required value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="Smith Residence" className="input" />
@@ -415,15 +450,18 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose
             <input type="text" value={form.client_address} onChange={e => set('client_address', e.target.value)} placeholder="123 Main St, Springfield, IL" className="input" />
           </MField>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <MField label="Date *">
               <input type="date" required value={form.date} onChange={e => set('date', e.target.value)} className="input" />
             </MField>
             <MField label="Start Time">
               <input type="time" value={form.start_time} onChange={e => set('start_time', e.target.value)} className="input" />
             </MField>
-            <MField label="End Time" className="col-span-2 sm:col-span-1">
+            <MField label="End Time">
               <input type="time" value={form.end_time} onChange={e => set('end_time', e.target.value)} className="input" />
+            </MField>
+            <MField label="Job Price ($)">
+              <input type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" className="input" />
             </MField>
           </div>
 
@@ -486,19 +524,36 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onClose
           </MField>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-            {isEdit ? (
-              delConfirm ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-400">Delete:</span>
-                  <button type="button" onClick={() => onDelete(job.id, false)} className="text-xs text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition-colors">This one</button>
-                  {job.parent_id && <button type="button" onClick={() => onDelete(job.id, true)} className="text-xs text-white bg-rose-700 hover:bg-rose-600 px-3 py-1.5 rounded-lg transition-colors">All in series</button>}
-                  <button type="button" onClick={() => setDelConfirm(false)} className="text-xs text-slate-400 hover:text-white transition-colors">Cancel</button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => setDelConfirm(true)} className="text-xs text-slate-500 hover:text-rose-400 transition-colors">Delete job</button>
-              )
-            ) : <span />}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              {isEdit && (
+                delConfirm ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-slate-400">Delete:</span>
+                    <button type="button" onClick={() => onDelete(job.id, false)} className="text-xs text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition-colors">This one</button>
+                    {job.parent_id && <button type="button" onClick={() => onDelete(job.id, true)} className="text-xs text-white bg-rose-700 hover:bg-rose-600 px-3 py-1.5 rounded-lg transition-colors">All in series</button>}
+                    <button type="button" onClick={() => setDelConfirm(false)} className="text-xs text-slate-400 hover:text-white transition-colors">Cancel</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setDelConfirm(true)} className="text-xs text-slate-500 hover:text-rose-400 transition-colors">Delete job</button>
+                )
+              )}
+              {isEdit && job.price > 0 && (
+                job.revenue_logged
+                  ? <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      Logged to revenue
+                    </span>
+                  : <button
+                      type="button"
+                      onClick={handleLogRevenue}
+                      disabled={logging}
+                      className="text-xs font-medium text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-400/50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {logging ? 'Logging…' : 'Log to Revenue'}
+                    </button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onClose} className="text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
               <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 sm:py-2 rounded-lg text-sm transition-colors">

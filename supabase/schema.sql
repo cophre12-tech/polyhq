@@ -76,8 +76,13 @@ create table public.jobs (
   recurring      text default '',
   recurring_end  text,
   notes          text default '',
+  price          numeric(10,2),
+  revenue_logged boolean not null default false,
   created_at     timestamptz default now()
 );
+-- Migration (existing databases only — skip if running schema fresh):
+-- alter table public.jobs add column if not exists price numeric(10,2);
+-- alter table public.jobs add column if not exists revenue_logged boolean not null default false;
 
 create table public.invoices (
   id             uuid primary key default gen_random_uuid(),
