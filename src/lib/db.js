@@ -243,6 +243,7 @@ async function pushJobNotif(userId, type, title, message, jobId) {
 export async function createJob(data) {
   const businessId = await biz()
   const payload = { ...data, business_id: businessId, parent_id: null, status: data.status || 'scheduled' }
+  if (payload.price == null) delete payload.price
   const { data: job, error } = await supabase.from('jobs').insert(payload).select().single()
   if (error) throw new Error(error.message)
 
@@ -265,6 +266,7 @@ export async function createJob(data) {
 
 export async function updateJob(id, updates) {
   const { data: prev } = await supabase.from('jobs').select('*').eq('id', id).single()
+  if (updates.price == null) delete updates.price
   const { data: job, error } = await supabase.from('jobs').update(updates).eq('id', id).select().single()
   if (error) throw new Error(error.message)
 

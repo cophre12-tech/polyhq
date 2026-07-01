@@ -399,7 +399,22 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onLogRe
     : makeEmpty(defaultDate)
   )
   const [delConfirm, setDelConfirm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [logging, setLogging] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaveError('')
+    setSaving(true)
+    try {
+      await onSave({ ...form, price: form.price !== '' ? parseFloat(form.price) : null })
+    } catch (err) {
+      setSaveError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleLogRevenue() {
     setLogging(true)
@@ -430,10 +445,7 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onLogRe
           </button>
         </div>
 
-        <form onSubmit={e => {
-          e.preventDefault()
-          onSave({ ...form, price: form.price !== '' ? parseFloat(form.price) : null })
-        }} className="p-5 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <MField label="Client Name *">
               <input type="text" required value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="Smith Residence" className="input" />
@@ -556,11 +568,14 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onLogRe
             </div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onClose} className="text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 sm:py-2 rounded-lg text-sm transition-colors">
-                {isEdit ? 'Save Changes' : 'Create Job'}
+              <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 sm:py-2 rounded-lg text-sm transition-colors">
+                {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Job'}
               </button>
             </div>
           </div>
+          {saveError && (
+            <div className="mt-3 text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-lg px-3.5 py-2.5">{saveError}</div>
+          )}
         </form>
       </div>
     </div>
