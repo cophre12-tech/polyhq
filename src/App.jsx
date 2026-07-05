@@ -18,6 +18,7 @@ import PrivacyPage from './pages/PrivacyPage.jsx'
 import OwnerCommsPage from './pages/OwnerCommsPage.jsx'
 import EmployeeCommsPage from './pages/EmployeeCommsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
+import ActiveJobsPage from './pages/ActiveJobsPage.jsx'
 
 function AuthLayout() {
   const { user } = useAuth()
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/owner/payroll" element={<RoleGuard role="owner"><PayrollPage /></RoleGuard>} />
         <Route path="/owner/accounting" element={<RoleGuard role="owner"><AccountingPage /></RoleGuard>} />
         <Route path="/owner/schedule" element={<RoleGuard role="owner"><SchedulePage /></RoleGuard>} />
+        <Route path="/owner/active" element={<RoleGuard role="owner"><ActiveJobsPage /></RoleGuard>} />
         <Route path="/employee/schedule" element={<RoleGuard role="employee"><EmployeeSchedulePage /></RoleGuard>} />
         <Route path="/owner/invoices" element={<RoleGuard role="owner"><InvoicesPage /></RoleGuard>} />
         <Route path="/owner/invoices/new" element={<RoleGuard role="owner"><InvoiceEditorPage /></RoleGuard>} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getJobsForEmployee, updateJob, getAvailability, toggleUnavailableDate } from '../lib/db.js'
+import { getJobsForEmployee, updateJob, getAvailability, toggleUnavailableDate, addJobNote } from '../lib/db.js'
 
 const STATUS_META = {
   scheduled:   { label: 'Scheduled',   badge: 'bg-blue-500/15 text-blue-400',     border: 'border-l-blue-500' },
@@ -88,7 +88,7 @@ export default function EmployeeSchedulePage() {
                   </div>
                   <div className="space-y-3">
                     {dayJobs.map(job => (
-                      <JobCard key={job.id} job={job} onStatus={s => handleStatus(job.id, s)} />
+                      <JobCard key={job.id} job={job} userId={user.id} onStatus={s => handleStatus(job.id, s)} />
                     ))}
                   </div>
                 </div>
@@ -101,7 +101,7 @@ export default function EmployeeSchedulePage() {
                 Past jobs ({past.length})
               </summary>
               <div className="space-y-3 mt-3">
-                {past.slice().reverse().map(job => <JobCard key={job.id} job={job} past />)}
+                {past.slice().reverse().map(job => <JobCard key={job.id} job={job} userId={user.id} past />)}
               </div>
             </details>
           )}
@@ -115,8 +115,27 @@ export default function EmployeeSchedulePage() {
   )
 }
 
-function JobCard({ job, onStatus, past }) {
+function JobCard({ job, userId, onStatus, past }) {
   const meta = STATUS_META[job.status] || STATUS_META.scheduled
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [posting, setPosting]   = useState(false)
+  const [posted, setPosted]     = useState(false)
+
+  async function submitNote() {
+    if (!noteText.trim()) return
+    setPosting(true)
+    try {
+      await addJobNote(job.id, userId, noteText.trim())
+      setNoteText('')
+      setNoteOpen(false)
+      setPosted(true)
+      setTimeout(() => setPosted(false), 3000)
+    } finally {
+      setPosting(false)
+    }
+  }
+
   return (
     <div className={`bg-slate-900 border border-slate-800 border-l-2 ${meta.border} rounded-r-xl p-4 sm:p-5`}>
       <div className="flex items-start justify-between gap-4">
@@ -156,6 +175,50 @@ function JobCard({ job, onStatus, past }) {
           </div>
         )}
       </div>
+
+      {/* Progress note section */}
+      {!past && (
+        <div className="mt-3 pt-3 border-t border-slate-800">
+          {noteOpen ? (
+            <div className="space-y-2">
+              <textarea
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitNote() }}
+                placeholder="e.g. Halfway done, wrapping up, waiting on client…"
+                rows={2}
+                autoFocus
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={submitNote}
+                  disabled={posting || !noteText.trim()}
+                  className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3.5 py-1.5 rounded-lg transition-colors"
+                >
+                  {posting ? 'Posting…' : 'Post Note'}
+                </button>
+                <button
+                  onClick={() => { setNoteOpen(false); setNoteText('') }}
+                  className="text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setNoteOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-indigo-400 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              {posted ? <span className="text-emerald-400">Note posted ✓</span> : 'Add progress note'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

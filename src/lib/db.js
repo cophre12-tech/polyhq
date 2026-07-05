@@ -633,6 +633,18 @@ export async function getUnreadCommsCount(userId) {
   return dm + ann
 }
 
+// ── Clock records (all-business queries) ─────────────────────────────────────
+export async function getTodayClockRecords() {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const { data } = await supabase
+    .from('clock_records')
+    .select('*')
+    .gte('clock_in', start.toISOString())
+    .order('clock_in')
+  return data || []
+}
+
 // ── Job notes ─────────────────────────────────────────────────────────────────
 export async function addJobNote(jobId, userId, body) {
   const businessId = await biz()
@@ -650,6 +662,16 @@ export async function getJobNotes(jobId) {
     .select('*')
     .eq('job_id', jobId)
     .order('created_at')
+  return data || []
+}
+
+export async function getNotesForJobs(jobIds) {
+  if (!jobIds.length) return []
+  const { data } = await supabase
+    .from('job_notes')
+    .select('*')
+    .in('job_id', jobIds)
+    .order('created_at', { ascending: false })
   return data || []
 }
 
