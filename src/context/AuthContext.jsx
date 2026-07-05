@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { clearBizCache } from '../lib/db.js'
+import { requestAndSubscribe } from '../lib/push.js'
 
 const AuthContext = createContext(null)
 
@@ -59,6 +60,13 @@ export function AuthProvider({ children }) {
     const profile = await fetchProfile(authUser.id)
     if (profile) setUser({ ...profile, email: authUser.email })
   }
+
+  // Subscribe to push notifications whenever the logged-in user changes
+  useEffect(() => {
+    if (user?.id && user?.business_id) {
+      requestAndSubscribe(user.id, user.business_id)
+    }
+  }, [user?.id])
 
   if (loading) {
     return (

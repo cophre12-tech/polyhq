@@ -173,6 +173,17 @@ create table public.photos (
   created_at   timestamptz default now()
 );
 
+create table public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  endpoint    text not null,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz default now(),
+  unique(user_id, endpoint)
+);
+
 create table public.availability (
   id          uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses(id) on delete cascade,
@@ -355,6 +366,14 @@ create policy "business members can manage photos"
   on public.photos for all
   using  (business_id = current_business_id())
   with check (business_id = current_business_id());
+
+-- PUSH SUBSCRIPTIONS
+alter table public.push_subscriptions enable row level security;
+
+create policy "users can manage their own push subscriptions"
+  on public.push_subscriptions for all
+  using  (user_id = auth.uid())
+  with check (user_id = auth.uid());
 
 -- AVAILABILITY
 alter table public.availability enable row level security;

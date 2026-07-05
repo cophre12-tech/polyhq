@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { notifyOwners, notifyUsers } from './push.js'
 
 // ── Pure utility functions (no DB) ────────────────────────────────────────────
 export function getWeekStart(offsetWeeks = 0) {
@@ -162,19 +163,36 @@ export async function clockIn(userId) {
     .select()
     .single()
   if (error) throw new Error(error.message)
+  const { data: profile } = await supabase.from('profiles').select('name').eq('id', userId).single()
+  const name = profile?.name || 'An employee'
+  notifyOwners(businessId, {
+    title: `${name} clocked in`,
+    body: `Clocked in at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`,
+    url: '/owner/active',
+  })
   return data
 }
 
 export async function clockOut(userId) {
   const active = await getActiveEntry(userId)
   if (!active) throw new Error('Not clocked in')
+  const clockOutTime = new Date()
   const { data, error } = await supabase
     .from('clock_records')
-    .update({ clock_out: new Date().toISOString() })
+    .update({ clock_out: clockOutTime.toISOString() })
     .eq('id', active.id)
     .select()
     .single()
   if (error) throw new Error(error.message)
+  const businessId = await biz()
+  const { data: profile } = await supabase.from('profiles').select('name').eq('id', userId).single()
+  const name = profile?.name || 'An employee'
+  const hours = ((clockOutTime - new Date(active.clock_in)) / 3600000).toFixed(1)
+  notifyOwners(businessId, {
+    title: `${name} clocked out`,
+    body: `${hours}h total today`,
+    url: '/owner/active',
+  })
   return data
 }
 
@@ -256,11 +274,17 @@ export async function createJob(data) {
     }
   }
 
-  for (const uid of (data.assigned_to || [])) {
+  const assigned = data.assigned_to || []
+  for (const uid of assigned) {
     await pushJobNotif(uid, 'job_assigned', 'New job scheduled',
       `${data.service_type} for ${data.client_name} on ${data.date}${data.start_time ? ' at ' + fmt12(data.start_time) : ''}`,
       job.id)
   }
+  notifyUsers(assigned, {
+    title: 'New job assigned',
+    body: `${data.service_type} for ${data.client_name} on ${data.date}`,
+    url: '/employee/schedule',
+  })
   return job
 }
 
@@ -273,23 +297,43 @@ export async function updateJob(id, updates) {
   if (prev && updates.assigned_to) {
     const prevAssigned = prev.assigned_to || []
     const newAssigned = updates.assigned_to
-    for (const uid of newAssigned.filter(u => !prevAssigned.includes(u))) {
+    const newlyAdded = newAssigned.filter(u => !prevAssigned.includes(u))
+    for (const uid of newlyAdded) {
       await pushJobNotif(uid, 'job_assigned', 'New job scheduled',
         `${job.service_type} for ${job.client_name} on ${job.date}`, id)
     }
+    notifyUsers(newlyAdded, {
+      title: 'New job assigned',
+      body: `${job.service_type} for ${job.client_name} on ${job.date}`,
+      url: '/employee/schedule',
+    })
     if (updates.date && updates.date !== prev.date) {
-      for (const uid of prevAssigned.filter(u => newAssigned.includes(u))) {
+      const rescheduled = prevAssigned.filter(u => newAssigned.includes(u))
+      for (const uid of rescheduled) {
         await pushJobNotif(uid, 'job_updated', 'Job rescheduled',
           `${job.service_type} for ${job.client_name} moved to ${updates.date}`, id)
       }
+      notifyUsers(rescheduled, {
+        title: 'Job rescheduled',
+        body: `${job.service_type} for ${job.client_name} moved to ${updates.date}`,
+        url: '/employee/schedule',
+      })
     }
   }
   return job
 }
 
 export async function deleteJob(id, allInSeries = false) {
+  const { data: job } = await supabase.from('jobs').select('*').eq('id', id).single()
+  const assigned = job?.assigned_to || []
+  if (assigned.length) {
+    notifyUsers(assigned, {
+      title: 'Job cancelled',
+      body: `${job.service_type} for ${job.client_name} on ${job.date} has been cancelled`,
+      url: '/employee/schedule',
+    })
+  }
   if (allInSeries) {
-    const { data: job } = await supabase.from('jobs').select('parent_id').eq('id', id).single()
     const root = job?.parent_id || id
     await supabase.from('jobs').delete().or(`id.eq.${root},parent_id.eq.${root}`)
   } else {
@@ -653,6 +697,27 @@ export async function addJobNote(jobId, userId, body) {
     .insert({ business_id: businessId, job_id: jobId, user_id: userId, body: body.trim() })
     .select()
     .single()
+
+  // Notify the other party: employees notify owners, owners notify assigned employees
+  const [{ data: poster }, { data: job }] = await Promise.all([
+    supabase.from('profiles').select('name, role').eq('id', userId).single(),
+    supabase.from('jobs').select('assigned_to, client_name, service_type').eq('id', jobId).single(),
+  ])
+  const snippet = body.trim().slice(0, 60)
+  if (poster?.role === 'employee' || poster?.role === 'co_owner') {
+    notifyOwners(businessId, {
+      title: `Note from ${poster.name}`,
+      body: snippet,
+      url: '/owner/active',
+    })
+  } else if (job?.assigned_to?.length) {
+    notifyUsers(job.assigned_to, {
+      title: `Note on your job`,
+      body: snippet,
+      url: '/employee/schedule',
+    })
+  }
+
   return data
 }
 
