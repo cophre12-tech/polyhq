@@ -402,6 +402,17 @@ export async function logJobToRevenue(job) {
   await supabase.from('jobs').update({ revenue_logged: true }).eq('id', job.id)
 }
 
+export async function autoCompleteJobs() {
+  const today = new Date().toISOString().split('T')[0]
+  const { data } = await supabase
+    .from('jobs')
+    .update({ status: 'completed' })
+    .eq('date', today)
+    .neq('status', 'completed')
+    .select('id')
+  return data?.length ?? 0
+}
+
 export async function autoLogTodayRevenue() {
   const today = new Date().toISOString().split('T')[0]
   const { data: jobs } = await supabase

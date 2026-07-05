@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   getJobsInRange, createJob, updateJob, deleteJob,
   getEmployees, getAllAvailability, getServices,
-  logJobToRevenue, autoLogTodayRevenue,
+  logJobToRevenue, autoCompleteJobs, autoLogTodayRevenue,
 } from '../lib/db.js'
 
 const RECURRING_OPTS = [
@@ -92,15 +92,15 @@ export default function SchedulePage() {
       .filter(Boolean)
   }
 
-  // Auto-log today's priced jobs to revenue at 5 PM
+  // At 5 PM: auto-complete today's unfinished jobs, then auto-log priced ones to revenue
   useEffect(() => {
-    function checkAutoLog() {
-      if (new Date().getHours() >= 17) {
-        autoLogTodayRevenue().then(n => { if (n > 0) load() })
-      }
+    async function checkAt5pm() {
+      if (new Date().getHours() < 17) return
+      const [completed, logged] = await Promise.all([autoCompleteJobs(), autoLogTodayRevenue()])
+      if (completed > 0 || logged > 0) load()
     }
-    checkAutoLog()
-    const id = setInterval(checkAutoLog, 60000)
+    checkAt5pm()
+    const id = setInterval(checkAt5pm, 60000)
     return () => clearInterval(id)
   }, [])
 
