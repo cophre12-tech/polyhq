@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getJobsInRange, createJob, updateJob, deleteJob,
   getEmployees, getAllAvailability, getServices,
   logJobToRevenue, autoCompleteJobs, autoLogTodayRevenue,
 } from '../lib/db.js'
+import { supabase } from '../lib/supabase.js'
 
 const RECURRING_OPTS = [
   { value: '',          label: 'Does not repeat' },
@@ -27,7 +29,9 @@ function getMonday(from = new Date()) {
   return d
 }
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r }
-function toStr(d) { return d.toISOString().split('T')[0] }
+function toStr(d) {
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
+}
 function weekDates(mon) { return Array.from({length:7}, (_,i) => addDays(mon, i)) }
 function fmt12(t) {
   if (!t) return ''
@@ -67,6 +71,21 @@ export default function SchedulePage() {
     setAvail(av)
   }
   useEffect(() => { load() }, [wStart])
+
+  // Keep ref to latest load so realtime callback always uses current week range
+  const loadRef = useRef(load)
+  useEffect(() => { loadRef.current = load })
+
+  // Supabase Realtime — refresh when any job changes (status, assignment, etc.)
+  useEffect(() => {
+    const channel = supabase
+      .channel('schedule-jobs-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+        loadRef.current()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   // Sync activeDay with week: if it falls outside current week, reset to first day of week
   useEffect(() => {
@@ -144,6 +163,23 @@ export default function SchedulePage() {
           <p className="text-slate-400 text-sm">{months.join(' / ')} {year}</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Active Jobs link — highlighted when viewing current week */}
+          <Link
+            to="/owner/active"
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              wStart <= today && today <= wEnd
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+            }`}
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              {wStart <= today && today <= wEnd && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${wStart <= today && today <= wEnd ? 'bg-amber-400' : 'bg-slate-600'}`} />
+            </span>
+            Live
+          </Link>
           <div className="flex items-center gap-0.5 bg-slate-800 border border-slate-700 rounded-lg p-1">
             <button onClick={() => setMonday(m => addDays(m,-7))} className="p-1.5 text-slate-400 hover:text-white rounded transition-colors">
               <ChevronLeft />
@@ -187,13 +223,27 @@ export default function SchedulePage() {
               onDragLeave={() => dragOver === ds && setDragOver(null)}
             >
               {/* Day header */}
-              <button
-                className={`text-left px-3 py-2.5 border-b shrink-0 hover:bg-slate-800/50 transition-colors ${isToday ? 'border-indigo-500/40' : 'border-slate-800'}`}
-                onClick={() => setModal({ type: 'create', date: ds })}
-              >
-                <p className={`text-xs font-medium ${isToday ? 'text-indigo-400' : 'text-slate-500'}`}>{DAY_LABELS[i]}</p>
-                <p className={`text-2xl font-bold leading-tight ${isToday ? 'text-indigo-300' : 'text-white'}`}>{date.getDate()}</p>
-              </button>
+              <div className={`border-b shrink-0 ${isToday ? 'border-indigo-500/40' : 'border-slate-800'}`}>
+                <button
+                  className="w-full text-left px-3 py-2.5 hover:bg-slate-800/50 transition-colors"
+                  onClick={() => setModal({ type: 'create', date: ds })}
+                >
+                  <p className={`text-xs font-medium ${isToday ? 'text-indigo-400' : 'text-slate-500'}`}>{DAY_LABELS[i]}</p>
+                  <p className={`text-2xl font-bold leading-tight ${isToday ? 'text-indigo-300' : 'text-white'}`}>{date.getDate()}</p>
+                </button>
+                {isToday && (
+                  <Link
+                    to="/owner/active"
+                    className="flex items-center justify-center gap-1 py-1 text-xs text-amber-400 hover:text-amber-300 bg-amber-500/5 hover:bg-amber-500/10 transition-colors border-t border-amber-500/10"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                    </span>
+                    Live View
+                  </Link>
+                )}
+              </div>
 
               {/* Unavailability strip */}
               {unavail.length > 0 && (
@@ -306,10 +356,24 @@ export default function SchedulePage() {
 
         {/* Selected day header */}
         <div className="px-4 mb-3 shrink-0">
-          <p className="text-sm font-semibold text-slate-300">
-            {activeDayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            {activeDay === today && <span className="ml-2 text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">Today</span>}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-300">
+              {activeDayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {activeDay === today && <span className="ml-2 text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">Today</span>}
+            </p>
+            {activeDay === today && (
+              <Link
+                to="/owner/active"
+                className="flex items-center gap-1.5 text-xs font-medium text-amber-400 border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15 px-2.5 py-1 rounded-lg transition-colors shrink-0"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                </span>
+                Live View
+              </Link>
+            )}
+          </div>
           {unavailNames(activeDay).length > 0 && (
             <p className="text-xs text-rose-400/60 mt-0.5">✗ Unavailable: {unavailNames(activeDay).join(', ')}</p>
           )}

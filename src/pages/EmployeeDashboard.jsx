@@ -3,8 +3,9 @@ import { useAuth } from '../context/AuthContext.jsx'
 import {
   clockIn, clockOut, getActiveEntry, getEntriesForUser,
   getEntriesInRange, entryDuration, getWeekStart, getTodayStart,
+  getBusinessSettings,
 } from '../lib/db.js'
-import { calcPayroll, formatCurrency, formatHours, formatDuration } from '../lib/payroll.js'
+import { calcPayroll, formatCurrency, formatHours, formatDuration, formatPct } from '../lib/payroll.js'
 
 export default function EmployeeDashboard() {
   const { user } = useAuth()
@@ -14,21 +15,24 @@ export default function EmployeeDashboard() {
   const [baseTodayHours, setBaseTodayH]   = useState(0)
   const [baseWeekHours, setBaseWeekH]     = useState(0)
   const [recentEntries, setRecentEntries] = useState([])
+  const [businessState, setBusinessState] = useState(null)
   const [error, setError]                 = useState('')
   const [loading, setLoading]             = useState(false)
 
   const refresh = useCallback(async () => {
     const now = new Date()
-    const [entry, todayEntries, weekEntries, allEntries] = await Promise.all([
+    const [entry, todayEntries, weekEntries, allEntries, settings] = await Promise.all([
       getActiveEntry(user.id),
       getEntriesInRange(getTodayStart(), now, user.id),
       getEntriesInRange(getWeekStart(), now, user.id),
       getEntriesForUser(user.id),
+      getBusinessSettings(),
     ])
     setActive(entry)
     setBaseTodayH(todayEntries.filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0))
     setBaseWeekH(weekEntries.filter(e => e.clock_out).reduce((s, e) => s + entryDuration(e), 0))
     setRecentEntries(allEntries.filter(e => e.clock_out).slice(0, 6))
+    setBusinessState(settings?.state || 'VT')
   }, [user.id])
 
   useEffect(() => { refresh() }, [refresh])
@@ -51,7 +55,7 @@ export default function EmployeeDashboard() {
   const sessionHours = elapsed / 3600000
   const todayHours   = baseTodayHours + (active ? sessionHours : 0)
   const weekHours    = baseWeekHours  + (active ? sessionHours : 0)
-  const pay          = calcPayroll(weekHours, user.hourly_rate || 0)
+  const pay          = calcPayroll(weekHours, user.hourly_rate || 0, 52, 0, businessState)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
@@ -89,20 +93,8 @@ export default function EmployeeDashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        {/* Pay breakdown */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-          <h3 className="font-semibold text-white mb-4 sm:mb-5">Estimated Weekly Pay</h3>
-          <div className="space-y-3">
-            <PayRow label="Gross Pay"            value={formatCurrency(pay.gross)} />
-            <PayRow label="Federal Income Tax"   value={`−${formatCurrency(pay.federalTax)}`}     negative />
-            <PayRow label="Social Security 6.2%" value={`−${formatCurrency(pay.socialSecurity)}`} negative />
-            <PayRow label="Medicare 1.45%"       value={`−${formatCurrency(pay.medicare)}`}        negative />
-            <div className="border-t border-slate-700 pt-3 flex justify-between items-baseline">
-              <span className="font-semibold text-white">Net Pay</span>
-              <span className="text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums">{formatCurrency(pay.netPay)}</span>
-            </div>
-          </div>
-        </div>
+        {/* Detailed pay breakdown */}
+        <PayBreakdown pay={pay} weekHours={weekHours} hourlyRate={user.hourly_rate || 0} />
 
         {/* Recent shifts */}
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
@@ -127,20 +119,108 @@ export default function EmployeeDashboard() {
   )
 }
 
+function PayBreakdown({ pay, weekHours, hourlyRate }) {
+  const { stateInfo } = pay
+  const stateName = stateInfo ? stateInfo.name : 'State'
+
+  return (
+    <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
+      <h3 className="font-semibold text-white mb-5">Estimated Weekly Pay</h3>
+
+      {/* Gross */}
+      <div className="mb-4">
+        <div className="flex justify-between items-baseline mb-0.5">
+          <span className="text-sm font-medium text-white">Gross Pay</span>
+          <span className="text-sm font-semibold text-white tabular-nums">{formatCurrency(pay.gross)}</span>
+        </div>
+        <p className="text-xs text-slate-500">
+          {formatHours(weekHours)} × ${hourlyRate}/hr
+        </p>
+      </div>
+
+      {/* Deductions header */}
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 border-t border-slate-800 pt-3">Deductions</p>
+
+      <div className="space-y-3 mb-4">
+        {/* Federal */}
+        <TaxLine
+          label="Federal Income Tax"
+          amount={pay.federalTax}
+        >
+          {pay.federalBracket && (
+            <span className="text-xs text-slate-500">
+              {formatPct(pay.federalBracket.rate)} marginal · {formatPct(pay.federalEffRate)} effective
+              {pay.annualGross > 0 && <> · annualized {formatCurrency(pay.annualGross)}</>}
+            </span>
+          )}
+        </TaxLine>
+
+        {/* Social Security */}
+        <TaxLine label="Social Security" amount={pay.socialSecurity}>
+          <span className="text-xs text-slate-500">6.2% of gross (employee share)</span>
+        </TaxLine>
+
+        {/* Medicare */}
+        <TaxLine label="Medicare" amount={pay.medicare}>
+          <span className="text-xs text-slate-500">1.45% of gross (employee share)</span>
+        </TaxLine>
+
+        {/* State */}
+        <TaxLine
+          label={`${stateName} Income Tax`}
+          amount={pay.stateTax}
+          zero={!stateInfo?.hasIncomeTax}
+        >
+          {stateInfo?.hasIncomeTax && pay.stateBracket ? (
+            <span className="text-xs text-slate-500">
+              {formatPct(pay.stateBracket.rate)} marginal · {formatPct(pay.stateEffRate)} effective
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">
+              {stateInfo?.note ?? 'No state configured'}
+            </span>
+          )}
+        </TaxLine>
+      </div>
+
+      {/* Total deductions */}
+      <div className="flex justify-between items-center py-2.5 border-t border-slate-800 mb-3">
+        <span className="text-sm text-slate-400">Total Withheld</span>
+        <span className="text-sm font-semibold text-rose-400 tabular-nums">−{formatCurrency(pay.totalDeductions)}</span>
+      </div>
+
+      {/* Net pay */}
+      <div className="flex justify-between items-baseline bg-emerald-500/5 border border-emerald-500/15 rounded-lg px-3 py-2.5">
+        <span className="font-bold text-white">Est. Net Pay</span>
+        <span className="text-xl font-bold text-emerald-400 tabular-nums">{formatCurrency(pay.netPay)}</span>
+      </div>
+
+      <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+        * 2024 single-filer withholding tables. Not tax advice. Actual paycheck may differ.
+      </p>
+    </div>
+  )
+}
+
+function TaxLine({ label, amount, zero, children }) {
+  return (
+    <div>
+      <div className="flex justify-between items-baseline">
+        <span className="text-sm text-slate-300">{label}</span>
+        <span className={`text-sm font-medium tabular-nums ${zero ? 'text-slate-500' : 'text-rose-400'}`}>
+          {zero ? '$0.00' : `−${formatCurrency(amount)}`}
+        </span>
+      </div>
+      {children && <div className="mt-0.5">{children}</div>}
+    </div>
+  )
+}
+
 function Mini({ label, value, accent }) {
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 sm:px-5 py-4">
       <p className="text-xs text-slate-400 mb-1 uppercase tracking-wider">{label}</p>
       <p className={`text-lg sm:text-xl font-bold tabular-nums ${accent==='indigo'?'text-indigo-400':accent==='emerald'?'text-emerald-400':'text-white'}`}>{value}</p>
-    </div>
-  )
-}
-
-function PayRow({ label, value, negative }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-slate-400">{label}</span>
-      <span className={`text-sm font-medium tabular-nums ${negative?'text-rose-400':'text-white'}`}>{value}</span>
     </div>
   )
 }

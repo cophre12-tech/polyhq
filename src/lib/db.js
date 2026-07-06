@@ -2,6 +2,12 @@ import { supabase } from './supabase.js'
 import { notifyOwners, notifyUsers } from './push.js'
 
 // ── Pure utility functions (no DB) ────────────────────────────────────────────
+
+// Use local date methods — avoids UTC-offset bugs where toISOString() returns the wrong calendar date
+function localDateStr(d = new Date()) {
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
+}
+
 export function getWeekStart(offsetWeeks = 0) {
   const d = new Date()
   const day = d.getDay()
@@ -464,7 +470,7 @@ export async function logJobToRevenue(job) {
 }
 
 export async function autoCompleteJobs() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const { data } = await supabase
     .from('jobs')
     .update({ status: 'completed' })
@@ -475,7 +481,7 @@ export async function autoCompleteJobs() {
 }
 
 export async function autoLogTodayRevenue() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const { data: jobs } = await supabase
     .from('jobs')
     .select('*')
@@ -598,7 +604,7 @@ export async function getAllInvoices() {
     .from('invoices')
     .select('*')
     .order('created_at', { ascending: false })
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const invoices = data || []
   const overdueIds = invoices
     .filter(inv => ['sent', 'viewed'].includes(inv.status) && inv.due_date && inv.due_date < today)
@@ -832,15 +838,15 @@ export async function deletePhoto(id) {
 // ── Business settings ─────────────────────────────────────────────────────────
 export async function getBusinessSettings() {
   const businessId = await biz()
-  if (!businessId) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '' }
+  if (!businessId) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT' }
   const { data } = await supabase.from('businesses').select('*').eq('id', businessId).single()
-  return data || { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '' }
+  return data || { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT' }
 }
 
 export async function saveBusinessSettings(updates) {
   const businessId = await biz()
-  const { name, logo, address, phone, service_radius } = updates
-  await supabase.from('businesses').update({ name, logo, address, phone, service_radius }).eq('id', businessId)
+  const { name, logo, address, phone, service_radius, state } = updates
+  await supabase.from('businesses').update({ name, logo, address, phone, service_radius, state }).eq('id', businessId)
 }
 
 // ── Payroll settings ──────────────────────────────────────────────────────────
