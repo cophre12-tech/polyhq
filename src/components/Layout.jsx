@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useSubscription } from '../hooks/useSubscription.js'
 import NotificationBell from './NotificationBell.jsx'
 import ProfilePanel from './ProfilePanel.jsx'
 import { getUnreadCommsCount } from '../lib/db.js'
@@ -8,49 +9,52 @@ import { getUnreadCommsCount } from '../lib/db.js'
 // Primary tabs shown in the mobile bottom bar
 const OWNER_LINKS = [
   { to: '/owner',           label: 'Dashboard', icon: GridIcon },
-  { to: '/owner/schedule',  label: 'Schedule',  icon: CalendarIcon },
-  { to: '/owner/active',    label: 'Active',    icon: ActivityIcon },
-  { to: '/owner/comms',     label: 'Chat',      icon: ChatIcon },
+  { to: '/owner/schedule',  label: 'Schedule',  icon: CalendarIcon, feature: 'scheduling' },
+  { to: '/owner/active',    label: 'Active',    icon: ActivityIcon, feature: 'active_jobs' },
+  { to: '/owner/comms',     label: 'Chat',      icon: ChatIcon,     feature: 'comms' },
 ]
 
-// Secondary pages accessible via the "More" drawer
+// Secondary pages in the "More" drawer
 const OWNER_MORE_LINKS = [
   { to: '/owner/crew',       label: 'Crew',       icon: UsersIcon },
   { to: '/owner/payroll',    label: 'Payroll',    icon: DollarIcon },
-  { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
-  { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
-  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon },
-  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
+  { to: '/owner/expenses',   label: 'Expenses',   icon: ReceiptIcon },
+  { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon,  feature: 'accounting' },
+  { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon, feature: 'invoicing' },
+  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon,     feature: 'tax_forms' },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon,  feature: 'personal_financials' },
   { to: '/owner/settings',   label: 'Settings',   icon: GearIcon },
 ]
 
 const OWNER_SIDEBAR_LINKS = [
-  { to: '/owner',           label: 'Dashboard', icon: GridIcon },
-  { to: '/owner/schedule',  label: 'Schedule',  icon: CalendarIcon },
-  { to: '/owner/active',    label: 'Active Jobs', icon: ActivityIcon },
-  { to: '/owner/crew',      label: 'Crew',      icon: UsersIcon },
-  { to: '/owner/payroll',   label: 'Payroll',   icon: DollarIcon },
-  { to: '/owner/comms',     label: 'Chat',      icon: ChatIcon },
-  { to: '/owner/settings',  label: 'Settings',  icon: GearIcon },
+  { to: '/owner',           label: 'Dashboard',   icon: GridIcon },
+  { to: '/owner/schedule',  label: 'Schedule',    icon: CalendarIcon,  feature: 'scheduling' },
+  { to: '/owner/active',    label: 'Active Jobs', icon: ActivityIcon,  feature: 'active_jobs' },
+  { to: '/owner/crew',      label: 'Crew',        icon: UsersIcon },
+  { to: '/owner/payroll',   label: 'Payroll',     icon: DollarIcon },
+  { to: '/owner/comms',     label: 'Chat',        icon: ChatIcon,      feature: 'comms' },
+  { to: '/owner/settings',  label: 'Settings',    icon: GearIcon },
 ]
 
 const OWNER_FINANCE_LINKS = [
-  { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
-  { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
-  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon },
-  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
+  { to: '/owner/expenses',   label: 'Expenses',   icon: ReceiptIcon },
+  { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon,  feature: 'accounting' },
+  { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon, feature: 'invoicing' },
+  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon,     feature: 'tax_forms' },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon,  feature: 'personal_financials' },
 ]
 
 const EMPLOYEE_LINKS = [
   { to: '/employee',           label: 'My Hours',    icon: ClockIcon },
-  { to: '/employee/schedule',  label: 'My Schedule', icon: CalendarIcon },
-  { to: '/employee/comms',     label: 'Chat',        icon: ChatIcon },
-  { to: '/employee/personal',  label: 'Personal',    icon: WalletIcon },
+  { to: '/employee/schedule',  label: 'My Schedule', icon: CalendarIcon,  feature: 'scheduling' },
+  { to: '/employee/comms',     label: 'Chat',        icon: ChatIcon,      feature: 'comms' },
+  { to: '/employee/personal',  label: 'Personal',    icon: WalletIcon,    feature: 'personal_financials' },
   { to: '/employee/settings',  label: 'Settings',    icon: GearIcon },
 ]
 
 export default function Layout() {
   const { user, businesses, logout } = useAuth()
+  const { canUse } = useSubscription()
   const navigate = useNavigate()
   const [unreadComms, setUnreadComms] = useState(0)
   const [moreOpen, setMoreOpen]       = useState(false)
@@ -86,14 +90,19 @@ export default function Layout() {
         {/* Nav links */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="space-y-0.5">
-            {(isOwner ? OWNER_SIDEBAR_LINKS : EMPLOYEE_LINKS).map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} end
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
-                }>
-                <Icon />{label}
-              </NavLink>
-            ))}
+            {(isOwner ? OWNER_SIDEBAR_LINKS : EMPLOYEE_LINKS).map(({ to, label, icon: Icon, feature }) => {
+              const locked = feature && !canUse(feature)
+              return (
+                <NavLink key={to} to={to} end
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : locked ? 'text-slate-600 hover:bg-slate-800 hover:text-slate-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
+                  }>
+                  <Icon />
+                  <span className="flex-1">{label}</span>
+                  {locked && <NavLockIcon />}
+                </NavLink>
+              )
+            })}
           </div>
 
           {isOwner && (
@@ -101,20 +110,25 @@ export default function Layout() {
               <div className="my-4 border-t border-slate-800" />
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest px-3 mb-2">Finance</p>
               <div className="space-y-0.5">
-                {OWNER_FINANCE_LINKS.map(({ to, label, icon: Icon }) => (
-                  <NavLink key={to} to={to} end
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
-                    }>
-                    <Icon />{label}
-                  </NavLink>
-                ))}
+                {OWNER_FINANCE_LINKS.map(({ to, label, icon: Icon, feature }) => {
+                  const locked = feature && !canUse(feature)
+                  return (
+                    <NavLink key={to} to={to} end
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : locked ? 'text-slate-600 hover:bg-slate-800 hover:text-slate-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
+                      }>
+                      <Icon />
+                      <span className="flex-1">{label}</span>
+                      {locked && <NavLockIcon />}
+                    </NavLink>
+                  )
+                })}
               </div>
             </>
           )}
         </nav>
 
-        {/* User footer — click to open profile panel */}
+        {/* User footer */}
         <div className="p-3 border-t border-slate-800 shrink-0">
           <button
             onClick={() => setPanelOpen(true)}
@@ -147,7 +161,6 @@ export default function Layout() {
             <button
               onClick={() => setPanelOpen(true)}
               className="p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-              title="Profile"
             >
               <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                 {user?.name?.[0]}
@@ -170,19 +183,27 @@ export default function Layout() {
 
       {/* ── Mobile bottom nav ────────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-14 bg-slate-900 border-t border-slate-800 flex items-stretch">
-        {bottomLinks.map(({ to, label, icon: Icon }) => {
-          const isChat = to.endsWith('/comms')
+        {bottomLinks.map(({ to, label, icon: Icon, feature }) => {
+          const isChat   = to.endsWith('/comms')
+          const locked   = feature && !canUse(feature)
           return (
             <NavLink key={to} to={to} end
               onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500'}`
+                `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${isActive ? 'text-indigo-400' : locked ? 'text-slate-700' : 'text-slate-500'}`
               }>
               <div className="relative">
                 <Icon size="mobile" />
-                {isChat && unreadComms > 0 && (
+                {isChat && !locked && unreadComms > 0 && (
                   <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 bg-rose-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
                     {unreadComms > 9 ? '9+' : unreadComms}
+                  </span>
+                )}
+                {locked && (
+                  <span className="absolute -top-0.5 -right-1.5">
+                    <svg className="w-2.5 h-2.5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
                   </span>
                 )}
               </div>
@@ -205,36 +226,34 @@ export default function Layout() {
       {/* ── More drawer ──────────────────────────────────────────────── */}
       {isOwner && (
         <>
-          {/* Backdrop */}
           <div
             className={`md:hidden fixed inset-0 z-30 bg-black/60 transition-opacity duration-300 ${moreOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             onClick={() => setMoreOpen(false)}
           />
 
-          {/* Sheet — slides up from bottom-0; h-14 spacer keeps content above nav bar */}
           <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
-            {/* Drag handle */}
             <div className="flex justify-center pt-2.5 pb-1">
               <div className="w-9 h-1 rounded-full bg-slate-700" />
             </div>
 
-            {/* Nav rows */}
             <div className="px-3 pt-1 pb-2">
-              {OWNER_MORE_LINKS.map(({ to, label, icon: Icon }) => (
-                <NavLink key={to} to={to} end
-                  onClick={() => setMoreOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-4 px-4 py-3.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-indigo-600/15 text-indigo-400' : 'text-slate-200 active:bg-slate-800'}`
-                  }
-                >
-                  <Icon size="mobile" />
-                  <span className="flex-1 text-sm font-medium">{label}</span>
-                  <ChevronRight />
-                </NavLink>
-              ))}
+              {OWNER_MORE_LINKS.map(({ to, label, icon: Icon, feature }) => {
+                const locked = feature && !canUse(feature)
+                return (
+                  <NavLink key={to} to={to} end
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-4 px-4 py-3.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-indigo-600/15 text-indigo-400' : locked ? 'text-slate-500 active:bg-slate-800' : 'text-slate-200 active:bg-slate-800'}`
+                    }
+                  >
+                    <Icon size="mobile" />
+                    <span className="flex-1 text-sm font-medium">{label}</span>
+                    {locked ? <NavLockIcon /> : <ChevronRight />}
+                  </NavLink>
+                )
+              })}
             </div>
 
-            {/* Profile */}
             <div className="mx-3 border-t border-slate-800 pt-1 pb-2">
               <button
                 onClick={() => { setMoreOpen(false); setPanelOpen(true) }}
@@ -243,23 +262,29 @@ export default function Layout() {
                 <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                   {user?.name?.[0]}
                 </div>
-                <span className="flex-1 text-sm font-medium">Profile & Accounts</span>
+                <span className="flex-1 text-sm font-medium">Profile &amp; Accounts</span>
                 <ChevronRight />
               </button>
             </div>
 
-            {/* Spacer — exactly the nav bar height so content never hides behind it */}
             <div className="h-14" />
           </div>
         </>
       )}
-      {/* Profile panel */}
+
       <ProfilePanel open={panelOpen} onClose={() => setPanelOpen(false)} />
     </div>
   )
 }
 
 /* ── Icons ────────────────────────────────────────────────────────────── */
+function NavLockIcon() {
+  return (
+    <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  )
+}
 function GridIcon({ size }) {
   const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
   return (
@@ -306,6 +331,14 @@ function InvoiceIcon({ size }) {
   return (
     <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  )
+}
+function ReceiptIcon({ size }) {
+  const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
     </svg>
   )
 }

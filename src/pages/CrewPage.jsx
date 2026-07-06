@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useSubscription } from '../hooks/useSubscription.js'
 import {
   getAllTeamMembers, updateTeamMemberRole, updateTeamMemberRate,
   removeTeamMember, getBusinessSettings,
@@ -7,6 +9,8 @@ import {
 
 export default function CrewPage() {
   const { user } = useAuth()
+  const { employeeLimit, plan, isAdmin } = useSubscription()
+  const navigate = useNavigate()
   const isPrimaryOwner = user?.role === 'owner'
 
   const [members, setMembers]       = useState([])
@@ -48,13 +52,48 @@ export default function CrewPage() {
 
   const coOwners = members.filter(m => m.role === 'co_owner')
   const employees = members.filter(m => m.role === 'employee')
+  const atLimit = !isAdmin && isFinite(employeeLimit) && employees.length >= employeeLimit
+  const nearLimit = !isAdmin && isFinite(employeeLimit) && employees.length >= employeeLimit - 1 && !atLimit
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Crew</h1>
-        <p className="text-slate-400 mt-1 text-sm">Manage your team — employees and co-owners</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Crew</h1>
+          <p className="text-slate-400 mt-1 text-sm">Manage your team — employees and co-owners</p>
+        </div>
+        {!isAdmin && isFinite(employeeLimit) && (
+          <div className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border ${
+            atLimit
+              ? 'text-rose-400 bg-rose-500/10 border-rose-500/25'
+              : nearLimit
+              ? 'text-amber-400 bg-amber-500/10 border-amber-500/25'
+              : 'text-slate-400 bg-slate-800 border-slate-700'
+          }`}>
+            <span>{employees.length} / {employeeLimit} employees</span>
+            {atLimit && <span>· At limit</span>}
+          </div>
+        )}
       </div>
+
+      {/* Employee limit upgrade prompt */}
+      {atLimit && (
+        <div className="mb-6 bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Employee limit reached</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              You&apos;re on the <span className="capitalize font-medium text-slate-300">{plan}</span> plan ({employeeLimit} employee{employeeLimit !== 1 ? 's' : ''} max).
+              New employees won&apos;t be able to join until you upgrade.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg px-4 py-2 transition-colors"
+          >
+            Upgrade Plan
+          </button>
+        </div>
+      )}
 
       {/* Invite code */}
       {inviteCode && (
@@ -118,7 +157,9 @@ export default function CrewPage() {
       <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <h2 className="font-semibold text-white">Employees</h2>
-          <span className="text-xs text-slate-500">{employees.length} registered</span>
+          <span className="text-xs text-slate-500">
+            {employees.length}{isFinite(employeeLimit) && !isAdmin ? ` / ${employeeLimit}` : ''} registered
+          </span>
         </div>
 
         {employees.length === 0 ? (

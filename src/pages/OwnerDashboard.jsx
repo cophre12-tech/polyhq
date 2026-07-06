@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getEmployees, getEntriesInRange, getActiveEntry, entryDuration, getWeekStart, getTodayStart, updateEmployeeRate } from '../lib/db.js'
 import { formatHours, formatCurrency } from '../lib/payroll.js'
+import { useSubscription } from '../hooks/useSubscription.js'
 
 export default function OwnerDashboard() {
+  const { plan, isAdmin } = useSubscription()
+  const navigate = useNavigate()
   const [crew, setCrew] = useState([])
   const [editingRate, setEditingRate] = useState(null)
 
@@ -40,6 +44,24 @@ export default function OwnerDashboard() {
         <h1 className="text-xl sm:text-2xl font-bold text-white">Dashboard</h1>
         <p className="text-slate-400 mt-1 text-sm">Live crew status and weekly overview</p>
       </div>
+
+      {/* Free plan upgrade nudge */}
+      {!isAdmin && plan === 'free' && (
+        <div className="mb-6 bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">You&apos;re on the Free plan</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Upgrade to <span className="text-indigo-400 font-medium">Pro ($15/mo)</span> to unlock scheduling, invoicing, full accounting, team chat, and up to 10 employees.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg px-4 py-2 transition-colors"
+          >
+            View Plans
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard label="Total Crew"      value={crew.length} />

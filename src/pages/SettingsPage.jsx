@@ -523,30 +523,6 @@ function TeamTab({ user: currentUser }) {
 
 /* ── Subscription ─────────────────────────────────────────────────────────── */
 
-const PLAN_FEATURES_LIST = {
-  free: [
-    'Up to 3 employees',
-    'Clock in / clock out',
-    'Basic payroll (gross + net pay)',
-    'Job scheduling',
-    'Team messaging',
-  ],
-  pro: [
-    'Up to 10 employees',
-    'Everything in Free',
-    'Invoicing',
-    'Accounting & revenue reports',
-    'Full payroll with FICA & state tax',
-    'Active jobs dashboard',
-  ],
-  business: [
-    'Unlimited employees',
-    'Everything in Pro',
-    'Detailed tax breakdown per employee',
-    'Employer obligations table',
-    'EFTPS remittance schedule',
-  ],
-}
 
 function SubscriptionTab() {
   const { plan, isAdmin } = useSubscription()
@@ -588,7 +564,7 @@ function SubscriptionTab() {
               </div>
 
               <ul className="space-y-2 mb-6 flex-1">
-                {PLAN_FEATURES_LIST[planKey].map(f => (
+                {meta.features.map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
                     <svg className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     {f}

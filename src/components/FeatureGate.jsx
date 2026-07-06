@@ -1,83 +1,166 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 import { useSubscription } from '../hooks/useSubscription.js'
 
 const FEATURE_INFO = {
-  invoicing:           { name: 'Invoicing',                      minPlan: 'Pro',      priceLabel: '$15/mo' },
-  accounting:          { name: 'Accounting & Reports',           minPlan: 'Pro',      priceLabel: '$15/mo' },
-  payroll_advanced:    { name: 'Detailed Tax Breakdown & EFTPS', minPlan: 'Business', priceLabel: '$29/mo' },
-  personal_financials: { name: 'Personal Financials',            minPlan: 'Pro',      priceLabel: '$15/mo' },
-  tax_forms:           { name: 'Tax Forms',                      minPlan: 'Business', priceLabel: '$29/mo' },
+  scheduling:          {
+    name: 'Job Scheduling',
+    minPlan: 'Pro',
+    priceLabel: '$15/mo',
+    description: 'Schedule jobs, assign crew, and manage your calendar. View upcoming work and track completions.',
+  },
+  active_jobs:         {
+    name: 'Active Jobs',
+    minPlan: 'Pro',
+    priceLabel: '$15/mo',
+    description: 'Real-time view of jobs in progress. Add notes, photos, and update job status from the field.',
+  },
+  comms:               {
+    name: 'Team Chat',
+    minPlan: 'Pro',
+    priceLabel: '$15/mo',
+    description: 'Direct messages and announcements between owners and crew members.',
+  },
+  invoicing:           {
+    name: 'Invoicing',
+    minPlan: 'Pro',
+    priceLabel: '$15/mo',
+    description: 'Create and send professional invoices. Track paid, pending, and overdue invoices.',
+  },
+  accounting:          {
+    name: 'Accounting & Reports',
+    minPlan: 'Pro',
+    priceLabel: '$15/mo',
+    description: 'Full revenue tracking, profit/loss graphs, expense reports, and financial summaries.',
+  },
+  payroll_advanced:    {
+    name: 'Detailed Payroll & EFTPS',
+    minPlan: 'Business',
+    priceLabel: '$29/mo',
+    description: 'Per-employee federal, state, and FICA breakdowns. EFTPS remittance tracking.',
+  },
+  personal_financials: {
+    name: 'Personal Financials',
+    minPlan: 'Business',
+    priceLabel: '$29/mo',
+    description: 'Private income and expense tracking — completely invisible to your team.',
+  },
+  tax_forms:           {
+    name: 'Tax Forms',
+    minPlan: 'Business',
+    priceLabel: '$29/mo',
+    description: 'Schedule C, Form 1065, and Form 1120-S walkthroughs powered by your real business data.',
+  },
 }
 
-// Full-page lock — use as the return value of a page component
+const PLAN_COLORS = {
+  Pro:      { bar: 'from-indigo-500 to-violet-500', btn: 'bg-indigo-600 hover:bg-indigo-500', badge: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/25' },
+  Business: { bar: 'from-violet-500 to-purple-600', btn: 'bg-violet-600 hover:bg-violet-500', badge: 'text-violet-400 bg-violet-500/10 border-violet-500/25' },
+}
+
+// Full-page lock — returned instead of a page component
 export default function FeatureGate({ feature }) {
-  const navigate = useNavigate()
-  const info = FEATURE_INFO[feature] || { name: feature, minPlan: 'Pro', priceLabel: '$15/mo' }
+  const { plan }  = useSubscription()
+  const { user }  = useAuth()
+  const navigate  = useNavigate()
+  const isOwner   = user?.role === 'owner' || user?.role === 'co_owner'
+
+  const info   = FEATURE_INFO[feature] || { name: feature, minPlan: 'Pro', priceLabel: '$15/mo', description: 'Upgrade to unlock this feature.' }
+  const colors = PLAN_COLORS[info.minPlan] || PLAN_COLORS.Pro
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-2xl">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 sm:p-12 flex flex-col items-center text-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-          <LockIcon />
+    <div className="p-4 sm:p-6 lg:p-8 flex justify-start">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden w-full max-w-md">
+        <div className={`h-1 bg-gradient-to-r ${colors.bar}`} />
+        <div className="p-8 flex flex-col items-center text-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+            <LockIcon className="w-6 h-6 text-slate-400" />
+          </div>
+
+          <div>
+            {/* Plan badges */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-xs font-semibold text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-0.5 capitalize">
+                {planLabel} plan
+              </span>
+              <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              <span className={`text-xs font-semibold rounded-full px-2.5 py-0.5 border ${colors.badge}`}>
+                {info.minPlan} required
+              </span>
+            </div>
+
+            <h2 className="text-lg font-bold text-white mb-2">{info.name}</h2>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">{info.description}</p>
+          </div>
+
+          {isOwner ? (
+            <>
+              <button
+                onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
+                className={`text-white font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors ${colors.btn}`}
+              >
+                View Plans &amp; Upgrade
+              </button>
+              <p className="text-xs text-slate-600">{info.priceLabel} · Cancel anytime</p>
+            </>
+          ) : (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl px-5 py-4 text-sm text-slate-400">
+              Ask your business owner to upgrade to <span className="text-white font-semibold">{info.minPlan}</span> to unlock this feature.
+            </div>
+          )}
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-white mb-2">{info.name}</h2>
-          <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
-            This feature is available on the <span className="text-white font-semibold">{info.minPlan}</span> plan
-            ({info.priceLabel}). Upgrade to unlock it.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg px-6 py-2.5 text-sm transition-colors"
-        >
-          View Plans
-        </button>
       </div>
     </div>
   )
 }
 
-// Inline lock — use inside a page to block a section
+// Inline lock — wraps a section inside a page
 export function InlineFeatureGate({ feature, children }) {
-  const { canUse } = useSubscription()
+  const { canUse }  = useSubscription()
+  const { user }    = useAuth()
+  const navigate    = useNavigate()
   if (canUse(feature)) return children
 
-  const info = FEATURE_INFO[feature] || { name: feature, minPlan: 'Pro', priceLabel: '$15/mo' }
-  const navigate = useNavigate()
+  const isOwner = user?.role === 'owner' || user?.role === 'co_owner'
+  const info    = FEATURE_INFO[feature] || { name: feature, minPlan: 'Pro', priceLabel: '$15/mo' }
+  const colors  = PLAN_COLORS[info.minPlan] || PLAN_COLORS.Pro
 
   return (
     <div className="relative">
-      {/* Blurred preview */}
-      <div className="pointer-events-none select-none blur-sm opacity-30" aria-hidden>
+      <div className="pointer-events-none select-none blur-sm opacity-25" aria-hidden>
         {children}
       </div>
-      {/* Lock overlay */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="bg-slate-900/95 border border-slate-700 rounded-xl px-6 py-5 flex flex-col items-center gap-3 shadow-xl max-w-xs w-full mx-4">
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-            <LockIcon small />
+          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+            <LockIcon className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-white mb-0.5">{info.name}</p>
-            <p className="text-xs text-slate-400">Requires {info.minPlan} plan · {info.priceLabel}</p>
+            <p className="text-xs text-slate-400">{info.minPlan} plan · {info.priceLabel}</p>
           </div>
-          <button
-            onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg px-5 py-2 text-xs transition-colors"
-          >
-            View Plans
-          </button>
+          {isOwner ? (
+            <button
+              onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
+              className={`text-white font-semibold rounded-lg px-5 py-2 text-xs transition-colors ${colors.btn}`}
+            >
+              Upgrade to {info.minPlan}
+            </button>
+          ) : (
+            <p className="text-xs text-slate-500 text-center">Contact your owner to upgrade.</p>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-function LockIcon({ small }) {
-  const cls = small ? 'w-4 h-4 text-indigo-400' : 'w-6 h-6 text-indigo-400'
+function LockIcon({ className }) {
   return (
-    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
   )

@@ -24,6 +24,7 @@ import EmployeeSettingsPage from './pages/EmployeeSettingsPage.jsx'
 import ActiveJobsPage from './pages/ActiveJobsPage.jsx'
 import PersonalFinancialsPage from './pages/PersonalFinancialsPage.jsx'
 import TaxFormsPage from './pages/TaxFormsPage.jsx'
+import ExpensesPage from './pages/ExpensesPage.jsx'
 
 function AuthLayout() {
   const { user } = useAuth()
@@ -68,15 +69,16 @@ export default function App() {
         <Route path="/owner/crew" element={<RoleGuard role="owner"><CrewPage /></RoleGuard>} />
         <Route path="/owner/payroll" element={<RoleGuard role="owner"><PayrollPage /></RoleGuard>} />
         <Route path="/owner/accounting" element={<RoleGuard role="owner"><SubscriptionGuard feature="accounting"><AccountingPage /></SubscriptionGuard></RoleGuard>} />
-        <Route path="/owner/schedule" element={<RoleGuard role="owner"><SchedulePage /></RoleGuard>} />
-        <Route path="/owner/active" element={<RoleGuard role="owner"><ActiveJobsPage /></RoleGuard>} />
-        <Route path="/employee/schedule" element={<RoleGuard role="employee"><EmployeeSchedulePage /></RoleGuard>} />
+        <Route path="/owner/expenses" element={<RoleGuard role="owner"><ExpensesPage /></RoleGuard>} />
+        <Route path="/owner/schedule" element={<RoleGuard role="owner"><SubscriptionGuard feature="scheduling"><SchedulePage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/active" element={<RoleGuard role="owner"><SubscriptionGuard feature="active_jobs"><ActiveJobsPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/employee/schedule" element={<RoleGuard role="employee"><SubscriptionGuard feature="scheduling"><EmployeeSchedulePage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/invoices" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoicesPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/invoices/new" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceEditorPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/invoices/:id" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceViewPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/invoices/:id/edit" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceEditorPage /></SubscriptionGuard></RoleGuard>} />
-        <Route path="/owner/comms" element={<RoleGuard role="owner"><OwnerCommsPage /></RoleGuard>} />
-        <Route path="/employee/comms" element={<RoleGuard role="employee"><EmployeeCommsPage /></RoleGuard>} />
+        <Route path="/owner/comms" element={<RoleGuard role="owner"><SubscriptionGuard feature="comms"><OwnerCommsPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/employee/comms" element={<RoleGuard role="employee"><SubscriptionGuard feature="comms"><EmployeeCommsPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />
         <Route path="/employee/settings" element={<RoleGuard role="employee"><EmployeeSettingsPage /></RoleGuard>} />
         <Route path="/owner/personal" element={<RoleGuard role="owner"><SubscriptionGuard feature="personal_financials"><PersonalFinancialsPage /></SubscriptionGuard></RoleGuard>} />
