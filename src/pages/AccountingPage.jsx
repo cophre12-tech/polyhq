@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import {
-  getAllRevenue, addRevenue, deleteRevenue,
+  getAllRevenue, addRevenue, updateRevenue, deleteRevenue,
   getAllExpenses, addExpense, updateExpense, deleteExpense,
 } from '../lib/db.js'
 import { formatCurrency } from '../lib/payroll.js'
@@ -453,7 +453,16 @@ function RevenueTab({ revenue, onUpdate }) {
                 <div key={r.id} className="flex items-center px-4 sm:px-6 py-4 gap-3 sm:gap-4 hover:bg-slate-800/30 transition-colors group">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{r.service_type}</span>
+                      <select
+                        defaultValue={r.service_type}
+                        onChange={async e => {
+                          await updateRevenue(r.id, { service_type: e.target.value })
+                          onUpdate()
+                        }}
+                        className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-transparent hover:border-emerald-500/40 focus:border-emerald-500 focus:outline-none cursor-pointer transition-colors appearance-none"
+                      >
+                        {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
                       <span className="text-xs text-slate-500">{r.date}</span>
                     </div>
                     <p className="text-sm text-white truncate">{r.client}</p>

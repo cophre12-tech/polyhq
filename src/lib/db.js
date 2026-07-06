@@ -513,6 +513,10 @@ export async function addRevenue(data) {
   return rev
 }
 
+export async function updateRevenue(id, updates) {
+  await supabase.from('revenue').update(updates).eq('id', id)
+}
+
 export async function deleteRevenue(id) {
   await supabase.from('revenue').delete().eq('id', id)
 }
