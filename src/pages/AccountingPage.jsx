@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react'
 import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts'
+import {
   getAllRevenue, addRevenue, deleteRevenue,
   getAllExpenses, addExpense, deleteExpense,
 } from '../lib/db.js'
@@ -28,6 +32,8 @@ const CAT_COLORS = {
   Other:     'bg-slate-600/50 text-slate-300',
 }
 
+const DONUT_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+
 const TAX_RATE = 0.25
 const TODAY = new Date().toISOString().split('T')[0]
 
@@ -46,7 +52,7 @@ function groupAndSum(items, keyField, valField) {
 }
 
 export default function AccountingPage() {
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState('charts')
   const [filter, setFilter] = useState('year')
   const [revenue, setRevenue] = useState([])
   const [expenses, setExpenses] = useState([])
@@ -66,8 +72,8 @@ export default function AccountingPage() {
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0)
   const netProfit     = totalRevenue - totalExpenses
 
-  const TABS    = ['Overview', 'Revenue', 'Expenses', 'Write-offs']
-  const TAB_IDS = ['overview', 'revenue', 'expenses', 'writeoffs']
+  const TABS    = ['Charts', 'Overview', 'Revenue', 'Expenses', 'Write-offs']
+  const TAB_IDS = ['charts', 'overview', 'revenue', 'expenses', 'writeoffs']
   const FILTERS = [{ id: 'month', label: 'This Month' }, { id: 'year', label: 'This Year' }, { id: 'all', label: 'All Time' }]
 
   return (
@@ -77,25 +83,28 @@ export default function AccountingPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-white">Accounting</h1>
           <p className="text-slate-400 mt-1 text-sm">Revenue, expenses, P&amp;L, and tax write-offs</p>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {FILTERS.map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
-              {f.label}
-            </button>
-          ))}
+        {tab !== 'charts' && (
+          <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+            {FILTERS.map(f => (
+              <button key={f.id} onClick={() => setFilter(f.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {tab !== 'charts' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <SummaryCard label="Total Revenue"      value={formatCurrency(totalRevenue)}  accent="emerald" />
+          <SummaryCard label="Total Expenses"     value={formatCurrency(totalExpenses)} accent="rose" />
+          <SummaryCard label="Net Profit"         value={formatCurrency(netProfit)}     accent={netProfit >= 0 ? 'emerald' : 'rose'} sub={netProfit >= 0 ? 'Profitable' : 'Net loss'} />
+          <SummaryCard label="Est. Tax Write-offs" value={formatCurrency(totalExpenses)} accent="indigo" sub={`~${formatCurrency(totalExpenses * TAX_RATE)} saved`} />
         </div>
-      </div>
+      )}
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <SummaryCard label="Total Revenue"      value={formatCurrency(totalRevenue)}  accent="emerald" />
-        <SummaryCard label="Total Expenses"     value={formatCurrency(totalExpenses)} accent="rose" />
-        <SummaryCard label="Net Profit"         value={formatCurrency(netProfit)}     accent={netProfit >= 0 ? 'emerald' : 'rose'} sub={netProfit >= 0 ? 'Profitable' : 'Net loss'} />
-        <SummaryCard label="Est. Tax Write-offs" value={formatCurrency(totalExpenses)} accent="indigo" sub={`~${formatCurrency(totalExpenses * TAX_RATE)} saved`} />
-      </div>
-
-      {/* Tabs — scrollable row */}
+      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-slate-900 rounded-xl p-1 border border-slate-800 overflow-x-auto">
         {TABS.map((label, i) => (
           <button key={TAB_IDS[i]} onClick={() => setTab(TAB_IDS[i])}
@@ -105,10 +114,217 @@ export default function AccountingPage() {
         ))}
       </div>
 
-      {tab === 'overview'  && <OverviewTab revenue={filteredRevenue} expenses={filteredExpenses} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} />}
-      {tab === 'revenue'   && <RevenueTab  revenue={revenue} onUpdate={load} />}
-      {tab === 'expenses'  && <ExpensesTab expenses={expenses} onUpdate={load} />}
-      {tab === 'writeoffs' && <WriteoffsTab expenses={filteredExpenses} />}
+      {tab === 'charts'   && <ChartsTab revenue={revenue} expenses={expenses} />}
+      {tab === 'overview' && <OverviewTab revenue={filteredRevenue} expenses={filteredExpenses} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} />}
+      {tab === 'revenue'  && <RevenueTab revenue={revenue} onUpdate={load} />}
+      {tab === 'expenses' && <ExpensesTab expenses={expenses} onUpdate={load} />}
+      {tab === 'writeoffs'&& <WriteoffsTab expenses={filteredExpenses} />}
+    </div>
+  )
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+
+const TOOLTIP_STYLE = {
+  contentStyle: { backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '13px', padding: '8px 12px' },
+  labelStyle: { color: '#94a3b8', marginBottom: 4, fontSize: '11px' },
+  itemStyle: { color: '#fff', padding: 0 },
+}
+const AXIS_TICK = { fill: '#64748b', fontSize: 11 }
+
+function getMonday(d) {
+  const date = new Date(d)
+  const day = date.getDay()
+  date.setDate(date.getDate() + (day === 0 ? -6 : 1 - day))
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function ChartsTab({ revenue, expenses }) {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear  = now.getFullYear()
+  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  // Totals (all time)
+  const totalRevenue  = revenue.reduce((s, r) => s + r.amount, 0)
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+  const netProfit     = totalRevenue - totalExpenses
+
+  // Bar chart: weekly buckets for current calendar month
+  const weeklyMap = revenue
+    .filter(r => {
+      const d = new Date(r.date + 'T00:00:00')
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    })
+    .reduce((acc, r) => {
+      const day = new Date(r.date + 'T00:00:00').getDate()
+      const key = `Wk ${Math.floor((day - 1) / 7) + 1}`
+      acc[key] = (acc[key] || 0) + r.amount
+      return acc
+    }, {})
+  const barData = ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5'].map(w => ({
+    week: w, revenue: weeklyMap[w] || 0,
+  }))
+  const hasBarData = barData.some(d => d.revenue > 0)
+
+  // Line chart: weekly revenue over past 12 weeks (≈3 months)
+  const thisMonday = getMonday(now)
+  const trendData = Array.from({ length: 12 }, (_, i) => {
+    const weekStart = new Date(thisMonday)
+    weekStart.setDate(thisMonday.getDate() - (11 - i) * 7)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    const rev = revenue
+      .filter(r => { const d = new Date(r.date + 'T00:00:00'); return d >= weekStart && d <= weekEnd })
+      .reduce((s, r) => s + r.amount, 0)
+    return {
+      label: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      revenue: rev,
+    }
+  })
+  const hasTrendData = trendData.some(d => d.revenue > 0)
+
+  // Donut chart: all-time revenue by service type
+  const donutData = Object.entries(
+    revenue.reduce((acc, r) => {
+      acc[r.service_type] = (acc[r.service_type] || 0) + r.amount
+      return acc
+    }, {})
+  ).sort(([, a], [, b]) => b - a).map(([name, value]) => ({ name, value }))
+  const hasDonutData = donutData.length > 0
+
+  function fmtAxis(v) {
+    if (v >= 1000) return `$${(v / 1000).toFixed(0)}k`
+    return `$${v}`
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <SummaryCard label="Total Revenue"  value={formatCurrency(totalRevenue)}  accent="emerald" sub="All time" />
+        <SummaryCard label="Total Expenses" value={formatCurrency(totalExpenses)} accent="rose"    sub="All time" />
+        <SummaryCard label="Net Profit"     value={formatCurrency(netProfit)}     accent={netProfit >= 0 ? 'emerald' : 'rose'} sub={netProfit >= 0 ? 'Profitable' : 'Net loss'} />
+      </div>
+
+      {/* Bar + Donut */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Bar chart */}
+        <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
+          <h3 className="font-semibold text-white mb-0.5">Revenue This Month</h3>
+          <p className="text-xs text-slate-500 mb-5">{monthName} — by week</p>
+          {hasBarData ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={barData} barSize={42} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="week" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+                <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={46} />
+                <Tooltip
+                  {...TOOLTIP_STYLE}
+                  cursor={{ fill: 'rgba(99,102,241,0.07)' }}
+                  formatter={v => [formatCurrency(v), 'Revenue']}
+                />
+                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <EmptyChart />}
+        </div>
+
+        {/* Donut chart */}
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
+          <h3 className="font-semibold text-white mb-0.5">By Service Type</h3>
+          <p className="text-xs text-slate-500 mb-4">All time</p>
+          {hasDonutData ? (
+            <>
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      innerRadius={56}
+                      outerRadius={82}
+                      dataKey="value"
+                      paddingAngle={2}
+                      startAngle={90}
+                      endAngle={-270}
+                      stroke="none"
+                    >
+                      {donutData.map((_, i) => (
+                        <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={TOOLTIP_STYLE.contentStyle}
+                      itemStyle={TOOLTIP_STYLE.itemStyle}
+                      formatter={(v, name) => [formatCurrency(v), name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-500 mb-0.5">Total</p>
+                    <p className="text-base font-bold text-white tabular-nums">{formatCurrency(totalRevenue)}</p>
+                  </div>
+                </div>
+              </div>
+              {/* Legend */}
+              <div className="mt-3 space-y-1.5">
+                {donutData.slice(0, 6).map(({ name, value }, i) => (
+                  <div key={name} className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                    <span className="text-slate-400 truncate flex-1">{name}</span>
+                    <span className="text-slate-300 tabular-nums font-medium">{formatCurrency(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : <EmptyChart />}
+        </div>
+      </div>
+
+      {/* Line chart */}
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
+        <h3 className="font-semibold text-white mb-0.5">Revenue Trend</h3>
+        <p className="text-xs text-slate-500 mb-5">Weekly — past 3 months</p>
+        {hasTrendData ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={trendData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={2} />
+              <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={46} />
+              <Tooltip
+                {...TOOLTIP_STYLE}
+                cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                formatter={v => [formatCurrency(v), 'Revenue']}
+              />
+              <Line
+                dataKey="revenue"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={{ fill: '#6366f1', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: '#818cf8', strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : <EmptyChart />}
+      </div>
+    </div>
+  )
+}
+
+function EmptyChart() {
+  return (
+    <div className="h-56 flex items-center justify-center">
+      <p className="text-slate-600 text-sm">No data yet</p>
     </div>
   )
 }
