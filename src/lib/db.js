@@ -320,6 +320,23 @@ export async function updateJob(id, updates) {
       })
     }
   }
+
+  // Notify owners when an employee marks a job complete
+  if (updates.status === 'completed' && prev?.status !== 'completed') {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (authUser) {
+      const { data: actor } = await supabase.from('profiles').select('role, name').eq('id', authUser.id).single()
+      if (actor?.role === 'employee' || actor?.role === 'co_owner') {
+        const businessId = job.business_id || await biz()
+        notifyOwners(businessId, {
+          title: 'Job completed ✓',
+          body: `${job.service_type} for ${job.client_name} — marked done by ${actor.name}`,
+          url: '/owner/active',
+        })
+      }
+    }
+  }
+
   return job
 }
 
