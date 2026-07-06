@@ -1,3 +1,8 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "build": {
+    "env": {
+      "VITE_VAPID_PUBLIC_KEY": "BCc8LKToP_tWbV1aH7pozKN8TqJAzFeaPH6Zaeq14GSQ-3eWx3nIzDNMJQ7ey1XdATKdKOoHcTZO6C5gh9Qt0KA"
+    }
+  }
 }

@@ -37,9 +37,10 @@ const OWNER_FINANCE_LINKS = [
 ]
 
 const EMPLOYEE_LINKS = [
-  { to: '/employee',          label: 'My Hours',    icon: ClockIcon },
-  { to: '/employee/schedule', label: 'My Schedule', icon: CalendarIcon },
-  { to: '/employee/comms',    label: 'Chat',        icon: ChatIcon },
+  { to: '/employee',           label: 'My Hours',    icon: ClockIcon },
+  { to: '/employee/schedule',  label: 'My Schedule', icon: CalendarIcon },
+  { to: '/employee/comms',     label: 'Chat',        icon: ChatIcon },
+  { to: '/employee/settings',  label: 'Settings',    icon: GearIcon },
 ]
 
 export default function Layout() {

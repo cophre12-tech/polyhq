@@ -18,6 +18,7 @@ import PrivacyPage from './pages/PrivacyPage.jsx'
 import OwnerCommsPage from './pages/OwnerCommsPage.jsx'
 import EmployeeCommsPage from './pages/EmployeeCommsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
+import EmployeeSettingsPage from './pages/EmployeeSettingsPage.jsx'
 import ActiveJobsPage from './pages/ActiveJobsPage.jsx'
 
 function AuthLayout() {
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/owner/comms" element={<RoleGuard role="owner"><OwnerCommsPage /></RoleGuard>} />
         <Route path="/employee/comms" element={<RoleGuard role="employee"><EmployeeCommsPage /></RoleGuard>} />
         <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />
+        <Route path="/employee/settings" element={<RoleGuard role="employee"><EmployeeSettingsPage /></RoleGuard>} />
         <Route path="/employee" element={<RoleGuard role="employee"><EmployeeDashboard /></RoleGuard>} />
       </Route>
     </Routes>

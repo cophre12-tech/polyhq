@@ -10,49 +10,102 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // Request notification permission and save the push subscription to Supabase.
+// Returns an array of { label, ok, detail } steps for UI diagnostics.
 // Safe to call multiple times — idempotent via upsert on (user_id, endpoint).
 export async function requestAndSubscribe(userId, businessId) {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-  if (!VAPID_PUBLIC_KEY) return // Not configured — skip silently
+  const steps = []
 
+  function pass(label, detail) {
+    console.log(`[push] ✓ ${label}: ${detail}`)
+    steps.push({ label, ok: true, detail })
+  }
+  function fail(label, detail) {
+    console.error(`[push] ✗ ${label}: ${detail}`)
+    steps.push({ label, ok: false, detail })
+    return steps
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return fail('Browser support', 'ServiceWorker or PushManager not available in this browser')
+  }
+  pass('Browser support', 'ServiceWorker and PushManager available')
+
+  if (!VAPID_PUBLIC_KEY) {
+    return fail('VAPID key', 'VITE_VAPID_PUBLIC_KEY is not set — check .env and rebuild')
+  }
+  pass('VAPID key', 'VITE_VAPID_PUBLIC_KEY is configured')
+
+  let permission
   try {
-    const permission = await Notification.requestPermission()
-    if (permission !== 'granted') return
+    permission = await Notification.requestPermission()
+  } catch (err) {
+    return fail('Notification permission', `requestPermission() threw: ${err.message}`)
+  }
+  if (permission !== 'granted') {
+    return fail('Notification permission', `"${permission}" — user must allow notifications in browser settings`)
+  }
+  pass('Notification permission', 'Granted')
 
-    const reg = await navigator.serviceWorker.ready
-    let sub = await reg.pushManager.getSubscription()
+  let reg
+  try {
+    reg = await navigator.serviceWorker.ready
+    pass('Service worker', `Active: ${reg.active?.scriptURL ?? 'unknown'}`)
+  } catch (err) {
+    return fail('Service worker', `serviceWorker.ready rejected: ${err.message}`)
+  }
 
-    if (!sub) {
+  let sub
+  try {
+    sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      pass('Push subscription', `Reusing existing subscription (${sub.endpoint.slice(0, 50)}…)`)
+    } else {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       })
+      pass('Push subscription', `Created new subscription (${sub.endpoint.slice(0, 50)}…)`)
     }
-
-    const { endpoint, keys } = sub.toJSON()
-    await supabase.from('push_subscriptions').upsert({
-      user_id: userId,
-      business_id: businessId,
-      endpoint,
-      p256dh: keys.p256dh,
-      auth: keys.auth,
-    }, { onConflict: 'user_id,endpoint' })
-  } catch {
-    // Permission denied or SW not ready — ignore
+  } catch (err) {
+    return fail('Push subscription', `subscribe() failed: ${err.message}`)
   }
+
+  try {
+    const { endpoint, keys } = sub.toJSON()
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      { user_id: userId, business_id: businessId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+      { onConflict: 'user_id,endpoint' },
+    )
+    if (error) {
+      return fail('Save to Supabase', `Upsert failed — ${error.message} (code: ${error.code})`)
+    }
+    pass('Save to Supabase', 'Subscription saved successfully')
+  } catch (err) {
+    return fail('Save to Supabase', `Upsert threw: ${err.message}`)
+  }
+
+  return steps
 }
 
 // Send a web push to all owners/co-owners of a business.
 export function notifyOwners(businessId, { title, body, url = '/' }) {
+  console.log('[push] notifyOwners called', { businessId, title, body, url })
   supabase.functions.invoke('send-push', {
     body: { roles: ['owner', 'co_owner'], business_id: businessId, title, body, url },
-  }).catch(() => {})
+  }).then(({ data, error }) => {
+    if (error) console.error('[push] notifyOwners edge function error:', error)
+    else console.log('[push] notifyOwners result:', data)
+  }).catch(err => console.error('[push] notifyOwners invoke failed:', err))
 }
 
 // Send a web push to specific users by their IDs.
 export function notifyUsers(userIds, { title, body, url = '/' }) {
   if (!userIds?.length) return
+  console.log('[push] notifyUsers called', { userIds, title, body, url })
   supabase.functions.invoke('send-push', {
     body: { user_ids: userIds, title, body, url },
-  }).catch(() => {})
+  }).then(({ data, error }) => {
+    if (error) console.error('[push] notifyUsers edge function error:', error)
+    else console.log('[push] notifyUsers result:', data)
+  }).catch(err => console.error('[push] notifyUsers invoke failed:', err))
 }
