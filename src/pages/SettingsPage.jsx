@@ -8,6 +8,7 @@ import {
   updateTeamMemberRate, removeTeamMember,
 } from '../lib/db.js'
 import { compressImage } from '../lib/compress.js'
+import { requestAndSubscribe } from '../lib/push.js'
 
 const TABS = [
   { id: 'business',  label: 'Business' },
@@ -56,14 +57,29 @@ export default function SettingsPage() {
 const DEFAULT_BIZ = { name: '', phone: '', address: '', service_radius: '', logo: '', invite_code: '' }
 
 function BusinessTab() {
+  const { user } = useAuth()
   const [form, setForm]       = useState(DEFAULT_BIZ)
   const [saved, setSaved]     = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [notifStatus, setNotifStatus] = useState(() =>
+    'Notification' in window ? Notification.permission : 'unsupported'
+  )
+  const [notifLoading, setNotifLoading] = useState(false)
   const logoRef = useRef(null)
 
   useEffect(() => {
     getBusinessSettings().then(s => s && setForm({ ...DEFAULT_BIZ, ...s }))
   }, [])
+
+  async function handleEnableNotifications() {
+    setNotifLoading(true)
+    try {
+      await requestAndSubscribe(user.id, user.business_id)
+      setNotifStatus('Notification' in window ? Notification.permission : 'unsupported')
+    } finally {
+      setNotifLoading(false)
+    }
+  }
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -159,6 +175,46 @@ function BusinessTab() {
           Save Business Settings
         </button>
         {saved && <span className="text-emerald-400 text-sm">Saved!</span>}
+      </div>
+
+      {/* Push notification opt-in */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6">
+        <h2 className="text-sm font-semibold text-white mb-1">Push Notifications</h2>
+        <p className="text-xs text-slate-400 mb-4">
+          Receive alerts when employees clock in or out, jobs are completed, and more — even when the app is closed.
+        </p>
+        {notifStatus === 'unsupported' && (
+          <p className="text-xs text-slate-500">Push notifications are not supported in this browser.</p>
+        )}
+        {notifStatus === 'granted' && (
+          <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Notifications enabled
+          </div>
+        )}
+        {notifStatus === 'denied' && (
+          <div>
+            <p className="text-xs text-rose-400 font-medium mb-1">Notifications are blocked</p>
+            <p className="text-xs text-slate-500">
+              To enable them, click the lock icon in your browser's address bar and allow notifications for this site, then reload the page.
+            </p>
+          </div>
+        )}
+        {notifStatus === 'default' && (
+          <button
+            type="button"
+            onClick={handleEnableNotifications}
+            disabled={notifLoading}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-5 py-2.5 text-sm transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {notifLoading ? 'Enabling…' : 'Enable Push Notifications'}
+          </button>
+        )}
       </div>
     </form>
   )
