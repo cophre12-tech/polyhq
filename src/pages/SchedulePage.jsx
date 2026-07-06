@@ -224,6 +224,20 @@ export default function SchedulePage() {
                         </div>
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">{job.service_type}</p>
+                      {job.price > 0 && (
+                        <p className="text-xs text-emerald-400/80 tabular-nums">${parseFloat(job.price).toFixed(2)}</p>
+                      )}
+                      {job.client_address && (
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(job.client_address)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="flex items-center gap-0.5 mt-0.5 text-indigo-400/70 hover:text-indigo-300 transition-colors"
+                        >
+                          <svg className="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                          <span className="text-xs truncate">{job.client_address}</span>
+                        </a>
+                      )}
                       {job.start_time && (
                         <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
                           {fmt12(job.start_time)}{job.end_time ? `–${fmt12(job.end_time)}` : ''}
@@ -330,7 +344,20 @@ export default function SchedulePage() {
                         )}
                       </div>
                       <p className="text-sm text-slate-400">{job.service_type}</p>
-                      {job.client_address && <p className="text-xs text-slate-500 mt-0.5 truncate">{job.client_address}</p>}
+                      {job.price > 0 && (
+                        <p className="text-sm text-emerald-400 tabular-nums mt-0.5">${parseFloat(job.price).toFixed(2)}</p>
+                      )}
+                      {job.client_address && (
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(job.client_address)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 mt-0.5 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                          <span className="truncate">{job.client_address}</span>
+                        </a>
+                      )}
                       {job.start_time && (
                         <p className="text-sm text-slate-400 mt-1 tabular-nums">
                           {fmt12(job.start_time)}{job.end_time ? ` – ${fmt12(job.end_time)}` : ''}

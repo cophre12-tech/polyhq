@@ -5,6 +5,9 @@ import { calcPayroll, formatCurrency, formatHours } from '../lib/payroll.js'
 export default function PayrollPage() {
   const [periodIdx, setPeriodIdx] = useState(0)
   const [rows, setRows] = useState([])
+  const [overrides, setOverrides] = useState({}) // { [empId]: number } manual hour overrides
+  const [editingId, setEditingId] = useState(null)
+  const [editVal, setEditVal] = useState('')
 
   const periods = useMemo(() => {
     const thisMonday = getWeekStart(0)
@@ -35,7 +38,32 @@ export default function PayrollPage() {
     return () => { mounted = false }
   }, [period])
 
-  const totals = useMemo(() => rows.reduce(
+  // Merge manual overrides into rows, recomputing payroll for changed hours
+  const displayRows = useMemo(() => rows.map(r => {
+    if (overrides[r.id] !== undefined) {
+      const pay = calcPayroll(overrides[r.id], r.hourly_rate || 0, period.payPeriods)
+      return { ...r, ...pay, hoursOverridden: true }
+    }
+    return r
+  }), [rows, overrides, period])
+
+  function startEdit(empId, currentHours) {
+    setEditingId(empId)
+    setEditVal(currentHours.toFixed(2))
+  }
+  function commitEdit() {
+    if (editingId !== null) {
+      const val = parseFloat(editVal)
+      if (!isNaN(val) && val >= 0) setOverrides(p => ({ ...p, [editingId]: val }))
+    }
+    setEditingId(null)
+    setEditVal('')
+  }
+  function resetOverride(empId) {
+    setOverrides(p => { const n = { ...p }; delete n[empId]; return n })
+  }
+
+  const totals = useMemo(() => displayRows.reduce(
     (acc, r) => ({
       hours: acc.hours + r.hours,
       gross: acc.gross + r.gross,
@@ -46,7 +74,7 @@ export default function PayrollPage() {
       netPay: acc.netPay + r.netPay,
     }),
     { hours: 0, gross: 0, federalTax: 0, socialSecurity: 0, medicare: 0, totalDeductions: 0, netPay: 0 }
-  ), [rows])
+  ), [displayRows])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
@@ -87,10 +115,10 @@ export default function PayrollPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {rows.length === 0 && (
+              {displayRows.length === 0 && (
                 <tr><td colSpan={8} className="px-6 py-10 text-center text-slate-500 text-sm">No employees yet.</td></tr>
               )}
-              {rows.map(emp => (
+              {displayRows.map(emp => (
                 <tr key={emp.id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2.5">
@@ -101,7 +129,36 @@ export default function PayrollPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-300 tabular-nums">{formatHours(emp.hours)}</td>
+                  <td className="px-6 py-4 text-right tabular-nums">
+                    {editingId === emp.id ? (
+                      <input
+                        type="number" min="0" step="0.25" autoFocus
+                        value={editVal}
+                        onChange={e => setEditVal(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { setEditingId(null) } }}
+                        className="w-20 bg-slate-700 border border-indigo-500 rounded px-2 py-1 text-white text-sm text-right tabular-nums focus:outline-none ml-auto block"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => startEdit(emp.id, emp.hours)}
+                        title="Click to manually adjust hours"
+                        className="group inline-flex items-center gap-1.5 ml-auto hover:text-white transition-colors"
+                      >
+                        {emp.hoursOverridden && (
+                          <span
+                            onClick={e => { e.stopPropagation(); resetOverride(emp.id) }}
+                            title="Reset to actual hours"
+                            className="text-rose-400 hover:text-rose-300 text-xs transition-colors cursor-pointer"
+                          >✕</span>
+                        )}
+                        <span className={emp.hoursOverridden ? 'text-indigo-300' : 'text-slate-300'}>
+                          {formatHours(emp.hours)}
+                        </span>
+                        <svg className="w-3 h-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                      </button>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-right text-slate-400">${emp.hourly_rate}/hr</td>
                   <td className="px-6 py-4 text-right font-medium text-white tabular-nums">{formatCurrency(emp.gross)}</td>
                   <td className="px-6 py-4 text-right text-rose-400 tabular-nums">{formatCurrency(emp.federalTax)}</td>
@@ -110,7 +167,7 @@ export default function PayrollPage() {
                   <td className="px-6 py-4 text-right font-bold text-emerald-400 tabular-nums">{formatCurrency(emp.netPay)}</td>
                 </tr>
               ))}
-              {rows.length > 0 && (
+              {displayRows.length > 0 && (
                 <tr className="border-t-2 border-slate-700 bg-slate-800/50">
                   <td className="px-6 py-4 font-bold text-white">Totals</td>
                   <td className="px-6 py-4 text-right font-semibold text-white tabular-nums">{formatHours(totals.hours)}</td>
@@ -129,16 +186,36 @@ export default function PayrollPage() {
 
       {/* Mobile cards */}
       <div className="sm:hidden space-y-3 mb-4">
-        {rows.length === 0 && (
+        {displayRows.length === 0 && (
           <p className="text-center text-slate-500 text-sm py-10">No employees yet.</p>
         )}
-        {rows.map(emp => (
+        {displayRows.map(emp => (
           <div key={emp.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-sm font-bold">{emp.name[0]}</div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white">{emp.name}</p>
-                <p className="text-xs text-slate-400">{formatHours(emp.hours)} · ${emp.hourly_rate}/hr</p>
+                <div className="flex items-center gap-1.5">
+                  {editingId === emp.id ? (
+                    <input
+                      type="number" min="0" step="0.25" autoFocus
+                      value={editVal}
+                      onChange={e => setEditVal(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingId(null) }}
+                      className="w-20 bg-slate-700 border border-indigo-500 rounded px-2 py-0.5 text-white text-xs focus:outline-none"
+                    />
+                  ) : (
+                    <button onClick={() => startEdit(emp.id, emp.hours)} className="text-xs text-slate-400 hover:text-indigo-300 transition-colors flex items-center gap-1">
+                      <span className={emp.hoursOverridden ? 'text-indigo-300' : ''}>{formatHours(emp.hours)}</span>
+                      <svg className="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                  )}
+                  {emp.hoursOverridden && (
+                    <button onClick={() => resetOverride(emp.id)} className="text-xs text-rose-400 hover:text-rose-300 transition-colors">reset</button>
+                  )}
+                  <span className="text-xs text-slate-500">· ${emp.hourly_rate}/hr</span>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
