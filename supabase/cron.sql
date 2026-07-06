@@ -5,7 +5,7 @@
 --   1. Enable pg_cron and pg_net in Dashboard → Database → Extensions
 --   2. Deploy the 'scheduled-push' edge function
 --   3. Set CRON_SECRET in that function's environment variables
---   4. Replace YOUR_CRON_SECRET below with the same value
+--   4. Replace ad3d0a401b39569f5e0fec617a7d4c5222a8e31769eb1a58149952d72aa6fc1d below with the same value
 --
 -- Times are UTC. Adjust the hours for your timezone:
 --   EST (UTC-5): 8:55am → 13:55, 4:30pm → 21:30
@@ -21,7 +21,7 @@ select cron.schedule(
   $$
   select net.http_post(
     url     := 'https://nrzngxbmshyuijkwjvbs.supabase.co/functions/v1/scheduled-push',
-    headers := '{"Content-Type":"application/json","x-cron-secret":"YOUR_CRON_SECRET"}'::jsonb,
+    headers := '{"Content-Type":"application/json","x-cron-secret":"ad3d0a401b39569f5e0fec617a7d4c5222a8e31769eb1a58149952d72aa6fc1d"}'::jsonb,
     body    := '{"type":"clock_in_reminder"}'::jsonb
   );
   $$
@@ -34,7 +34,7 @@ select cron.schedule(
   $$
   select net.http_post(
     url     := 'https://nrzngxbmshyuijkwjvbs.supabase.co/functions/v1/scheduled-push',
-    headers := '{"Content-Type":"application/json","x-cron-secret":"YOUR_CRON_SECRET"}'::jsonb,
+    headers := '{"Content-Type":"application/json","x-cron-secret":"ad3d0a401b39569f5e0fec617a7d4c5222a8e31769eb1a58149952d72aa6fc1d"}'::jsonb,
     body    := '{"type":"clock_out_reminder"}'::jsonb
   );
   $$
@@ -50,7 +50,7 @@ select cron.schedule(
   $$
   select net.http_post(
     url     := 'https://nrzngxbmshyuijkwjvbs.supabase.co/functions/v1/scheduled-push',
-    headers := '{"Content-Type":"application/json","x-cron-secret":"YOUR_CRON_SECRET"}'::jsonb,
+    headers := '{"Content-Type":"application/json","x-cron-secret":"ad3d0a401b39569f5e0fec617a7d4c5222a8e31769eb1a58149952d72aa6fc1d"}'::jsonb,
     body    := jsonb_build_object(
       'type',       'job_reminder',
       'check_time', to_char((now() at time zone 'America/New_York') + interval '30 minutes', 'HH24:MI'),
