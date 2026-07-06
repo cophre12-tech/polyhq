@@ -165,7 +165,7 @@ export default function Layout() {
       </main>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 border-t border-slate-800 flex">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-900 border-t border-slate-800 flex">
         {bottomLinks.map(({ to, label, icon: Icon }) => {
           const isChat = to.endsWith('/comms')
           return (
@@ -210,10 +210,11 @@ export default function Layout() {
             />
           )}
 
-          {/* Sheet */}
-          <div className={`md:hidden fixed bottom-16 inset-x-0 z-40 bg-slate-900 border-t border-slate-800 rounded-t-2xl transition-transform duration-200 ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          {/* Sheet — anchored at bottom-0 so translate-y-full clears the viewport completely */}
+          <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 border-t border-slate-800 rounded-t-2xl transition-transform duration-200 ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}>
             <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mt-3 mb-4" />
-            <div className="px-4 pb-6 grid grid-cols-3 gap-2">
+            {/* pb-20 keeps content above the nav bar */}
+            <div className="px-4 pb-20 grid grid-cols-3 gap-2">
               {OWNER_MORE_LINKS.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
