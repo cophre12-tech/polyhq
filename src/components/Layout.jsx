@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import NotificationBell from './NotificationBell.jsx'
+import ProfilePanel from './ProfilePanel.jsx'
 import { getUnreadCommsCount } from '../lib/db.js'
 
 // Primary tabs shown in the mobile bottom bar
@@ -44,13 +45,15 @@ const EMPLOYEE_LINKS = [
 ]
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, businesses, logout } = useAuth()
   const navigate = useNavigate()
   const [unreadComms, setUnreadComms] = useState(0)
-  const [moreOpen, setMoreOpen] = useState(false)
+  const [moreOpen, setMoreOpen]       = useState(false)
+  const [panelOpen, setPanelOpen]     = useState(false)
 
   const isOwner = user?.role === 'owner' || user?.role === 'co_owner'
   const bottomLinks = isOwner ? OWNER_LINKS : EMPLOYEE_LINKS
+  const activeBiz = businesses.find(b => b.id === user?.business_id)
 
   useEffect(() => {
     let mounted = true
@@ -62,11 +65,6 @@ export default function Layout() {
     const id = setInterval(check, 5000)
     return () => { mounted = false; clearInterval(id) }
   }, [user.id])
-
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -111,26 +109,26 @@ export default function Layout() {
           )}
         </nav>
 
-        {/* User footer */}
-        <div className="p-4 border-t border-slate-800 shrink-0">
-          <div className="flex items-center gap-3 mb-3 min-w-0">
+        {/* User footer — click to open profile panel */}
+        <div className="p-3 border-t border-slate-800 shrink-0">
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800 transition-colors group mb-2"
+          >
             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
               {user?.name?.[0]}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 text-left">
               <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400">{user?.role === 'co_owner' ? 'Co-Owner' : user?.role === 'owner' ? 'Owner' : 'Employee'}</p>
+              <p className="text-xs text-slate-400 truncate">
+                {activeBiz ? activeBiz.name : (user?.role === 'co_owner' ? 'Co-Owner' : user?.role === 'owner' ? 'Owner' : 'Employee')}
+              </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <button
-              onClick={handleLogout}
-              className="flex-1 text-sm text-slate-400 hover:text-white py-1.5 px-3 rounded-lg hover:bg-slate-800 transition-colors text-left"
-            >
-              Sign out
-            </button>
-          </div>
+            <svg className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <NotificationBell />
         </div>
       </aside>
 
@@ -142,13 +140,13 @@ export default function Layout() {
           <div className="flex items-center gap-1">
             <NotificationBell />
             <button
-              onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-              title="Sign out"
+              onClick={() => setPanelOpen(true)}
+              className="p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+              title="Profile"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                {user?.name?.[0]}
+              </div>
             </button>
           </div>
         </header>
@@ -231,16 +229,17 @@ export default function Layout() {
               ))}
             </div>
 
-            {/* Sign out */}
+            {/* Profile */}
             <div className="mx-3 border-t border-slate-800 pt-1 pb-2">
               <button
-                onClick={() => { setMoreOpen(false); handleLogout() }}
-                className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-rose-400 active:bg-rose-500/10 transition-colors"
+                onClick={() => { setMoreOpen(false); setPanelOpen(true) }}
+                className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-slate-200 active:bg-slate-800 transition-colors"
               >
-                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span className="text-sm font-medium">Sign Out</span>
+                <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                  {user?.name?.[0]}
+                </div>
+                <span className="flex-1 text-sm font-medium">Profile & Accounts</span>
+                <ChevronRight />
               </button>
             </div>
 
@@ -249,6 +248,8 @@ export default function Layout() {
           </div>
         </>
       )}
+      {/* Profile panel */}
+      <ProfilePanel open={panelOpen} onClose={() => setPanelOpen(false)} />
     </div>
   )
 }

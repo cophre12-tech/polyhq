@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
+import { useSubscription } from './hooks/useSubscription.js'
+import FeatureGate from './components/FeatureGate.jsx'
 import Layout from './components/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
@@ -39,6 +41,12 @@ function RoleGuard({ role, children }) {
   return children
 }
 
+function SubscriptionGuard({ feature, children }) {
+  const { canUse } = useSubscription()
+  if (!canUse(feature)) return <FeatureGate feature={feature} />
+  return children
+}
+
 function Root() {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
@@ -57,14 +65,14 @@ export default function App() {
         <Route path="/owner" element={<RoleGuard role="owner"><OwnerDashboard /></RoleGuard>} />
         <Route path="/owner/crew" element={<RoleGuard role="owner"><CrewPage /></RoleGuard>} />
         <Route path="/owner/payroll" element={<RoleGuard role="owner"><PayrollPage /></RoleGuard>} />
-        <Route path="/owner/accounting" element={<RoleGuard role="owner"><AccountingPage /></RoleGuard>} />
+        <Route path="/owner/accounting" element={<RoleGuard role="owner"><SubscriptionGuard feature="accounting"><AccountingPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/schedule" element={<RoleGuard role="owner"><SchedulePage /></RoleGuard>} />
         <Route path="/owner/active" element={<RoleGuard role="owner"><ActiveJobsPage /></RoleGuard>} />
         <Route path="/employee/schedule" element={<RoleGuard role="employee"><EmployeeSchedulePage /></RoleGuard>} />
-        <Route path="/owner/invoices" element={<RoleGuard role="owner"><InvoicesPage /></RoleGuard>} />
-        <Route path="/owner/invoices/new" element={<RoleGuard role="owner"><InvoiceEditorPage /></RoleGuard>} />
-        <Route path="/owner/invoices/:id" element={<RoleGuard role="owner"><InvoiceViewPage /></RoleGuard>} />
-        <Route path="/owner/invoices/:id/edit" element={<RoleGuard role="owner"><InvoiceEditorPage /></RoleGuard>} />
+        <Route path="/owner/invoices" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoicesPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/invoices/new" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceEditorPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/invoices/:id" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceViewPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/invoices/:id/edit" element={<RoleGuard role="owner"><SubscriptionGuard feature="invoicing"><InvoiceEditorPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/comms" element={<RoleGuard role="owner"><OwnerCommsPage /></RoleGuard>} />
         <Route path="/employee/comms" element={<RoleGuard role="employee"><EmployeeCommsPage /></RoleGuard>} />
         <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />

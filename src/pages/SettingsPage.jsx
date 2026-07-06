@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useSubscription, PLAN_META } from '../hooks/useSubscription.js'
 import {
   getBusinessSettings, saveBusinessSettings,
   getServices, addService, updateService, deleteService,
@@ -11,10 +13,11 @@ import { compressImage } from '../lib/compress.js'
 import PushDiagnosticPanel from '../components/PushDiagnosticPanel.jsx'
 
 const TABS = [
-  { id: 'business',  label: 'Business' },
-  { id: 'services',  label: 'Services' },
-  { id: 'team',      label: 'Team' },
-  { id: 'payroll',   label: 'Payroll Settings' },
+  { id: 'business',      label: 'Business' },
+  { id: 'services',      label: 'Services' },
+  { id: 'team',          label: 'Team' },
+  { id: 'payroll',       label: 'Payroll Settings' },
+  { id: 'subscription',  label: 'Subscription' },
 ]
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -27,7 +30,8 @@ const ROLE_META = {
 
 export default function SettingsPage() {
   const { user } = useAuth()
-  const [tab, setTab] = useState('business')
+  const location = useLocation()
+  const [tab, setTab] = useState(location.state?.tab || 'business')
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
@@ -45,10 +49,11 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {tab === 'business' && <BusinessTab />}
-      {tab === 'services' && <ServicesTab />}
-      {tab === 'team'     && <TeamTab user={user} />}
-      {tab === 'payroll'  && <PayrollTab />}
+      {tab === 'business'     && <BusinessTab />}
+      {tab === 'services'     && <ServicesTab />}
+      {tab === 'team'         && <TeamTab user={user} />}
+      {tab === 'payroll'      && <PayrollTab />}
+      {tab === 'subscription' && <SubscriptionTab />}
     </div>
   )
 }
@@ -512,6 +517,120 @@ function TeamTab({ user: currentUser }) {
           </form>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Subscription ─────────────────────────────────────────────────────────── */
+
+const PLAN_FEATURES_LIST = {
+  free: [
+    'Up to 3 employees',
+    'Clock in / clock out',
+    'Basic payroll (gross + net pay)',
+    'Job scheduling',
+    'Team messaging',
+  ],
+  pro: [
+    'Up to 10 employees',
+    'Everything in Free',
+    'Invoicing',
+    'Accounting & revenue reports',
+    'Full payroll with FICA & state tax',
+    'Active jobs dashboard',
+  ],
+  business: [
+    'Unlimited employees',
+    'Everything in Pro',
+    'Detailed tax breakdown per employee',
+    'Employer obligations table',
+    'EFTPS remittance schedule',
+  ],
+}
+
+function SubscriptionTab() {
+  const { plan, isAdmin } = useSubscription()
+  const [showComingSoon, setShowComingSoon] = useState(null)
+
+  return (
+    <div className="space-y-6">
+      {isAdmin && (
+        <div className="bg-violet-500/10 border border-violet-500/25 rounded-xl px-4 py-3 flex items-center gap-3">
+          <svg className="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <p className="text-sm text-violet-300 font-medium">Admin account — full Business access enabled regardless of plan.</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {['free', 'pro', 'business'].map(planKey => {
+          const meta = PLAN_META[planKey]
+          const isCurrent = plan === planKey
+          const isUpgrade = ['free','pro','business'].indexOf(planKey) > ['free','pro','business'].indexOf(plan)
+
+          return (
+            <div key={planKey}
+              className={`bg-slate-900 rounded-2xl border p-5 sm:p-6 flex flex-col relative overflow-hidden transition-all ${
+                isCurrent
+                  ? 'border-indigo-500 ring-1 ring-indigo-500/30'
+                  : 'border-slate-800'
+              }`}
+            >
+              {isCurrent && (
+                <div className="absolute top-3 right-3 bg-indigo-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                  Current Plan
+                </div>
+              )}
+
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{meta.name}</p>
+                <p className="text-2xl font-bold text-white">{meta.priceLabel}</p>
+                {planKey !== 'free' && <p className="text-xs text-slate-500 mt-0.5">per month, 1 business</p>}
+              </div>
+
+              <ul className="space-y-2 mb-6 flex-1">
+                {PLAN_FEATURES_LIST[planKey].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                    <svg className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              {isUpgrade && !isAdmin ? (
+                showComingSoon === planKey ? (
+                  <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center">
+                    <p className="text-sm font-semibold text-white mb-0.5">Coming Soon!</p>
+                    <p className="text-xs text-slate-400">Email <span className="text-indigo-400">support@polyhq.app</span> to upgrade early.</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowComingSoon(planKey)}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
+                  >
+                    Upgrade to {meta.name}
+                  </button>
+                )
+              ) : (
+                <div className={`w-full rounded-xl py-2.5 text-sm font-semibold text-center ${
+                  isCurrent
+                    ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30'
+                    : 'bg-slate-800 text-slate-500 cursor-default'
+                }`}>
+                  {isCurrent ? 'Active' : 'Included above'}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 flex items-start gap-3">
+        <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div>
+          <p className="text-sm text-slate-300 font-medium">Additional businesses</p>
+          <p className="text-xs text-slate-500 mt-0.5">Each extra business location is $5/month on any paid plan.</p>
+        </div>
+      </div>
     </div>
   )
 }

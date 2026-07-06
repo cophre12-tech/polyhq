@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getEmployees, getEntriesInRange, entryDuration, getWeekStart, getBusinessSettings } from '../lib/db.js'
 import { calcPayroll, formatCurrency, formatHours, formatPct, STATE_TAXES } from '../lib/payroll.js'
+import { InlineFeatureGate } from '../components/FeatureGate.jsx'
 
 export default function PayrollPage() {
   const [periodIdx, setPeriodIdx]   = useState(0)
@@ -179,88 +180,92 @@ export default function PayrollPage() {
 
       {/* Desktop table — Employer obligations */}
       {displayRows.length > 0 && (
-        <div className="hidden sm:block bg-slate-900 rounded-xl border border-slate-800 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-slate-800">
-            <h2 className="font-semibold text-white">Employer Obligations</h2>
-            <p className="text-xs text-slate-500 mt-0.5">These are your costs on top of each employee's net pay — not deducted from employees</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40">
-                  {[['Employee','left'],['Gross','right'],['Employer SS (6.2%)','right'],['Employer Med. (1.45%)','right'],['Total Employer Tax','right'],['Total Labor Cost','right']].map(([h, a]) => (
-                    <th key={h} className={`px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-${a} whitespace-nowrap`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {displayRows.map(emp => (
-                  <tr key={emp.id} className="hover:bg-slate-800/20 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-xs font-bold shrink-0">{emp.name[0]}</div>
-                        <span className="text-white font-medium">{emp.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">{formatCurrency(emp.gross)}</td>
-                    <td className="px-4 py-3 text-right text-amber-400 tabular-nums">{formatCurrency(emp.employerSS || 0)}</td>
-                    <td className="px-4 py-3 text-right text-amber-400 tabular-nums">{formatCurrency(emp.employerMedicare || 0)}</td>
-                    <td className="px-4 py-3 text-right font-medium text-amber-400 tabular-nums">{formatCurrency((emp.employerSS || 0) + (emp.employerMedicare || 0))}</td>
-                    <td className="px-4 py-3 text-right font-bold text-white tabular-nums">{formatCurrency(emp.gross + (emp.employerSS || 0) + (emp.employerMedicare || 0))}</td>
+        <InlineFeatureGate feature="payroll_advanced">
+          <div className="hidden sm:block bg-slate-900 rounded-xl border border-slate-800 overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-slate-800">
+              <h2 className="font-semibold text-white">Employer Obligations</h2>
+              <p className="text-xs text-slate-500 mt-0.5">These are your costs on top of each employee's net pay — not deducted from employees</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-950/40">
+                    {[['Employee','left'],['Gross','right'],['Employer SS (6.2%)','right'],['Employer Med. (1.45%)','right'],['Total Employer Tax','right'],['Total Labor Cost','right']].map(([h, a]) => (
+                      <th key={h} className={`px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider text-${a} whitespace-nowrap`}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-                <tr className="border-t-2 border-slate-700 bg-slate-800/50">
-                  <td className="px-4 py-4 font-bold text-white">Totals</td>
-                  <td className="px-4 py-4 text-right font-semibold text-white tabular-nums">{formatCurrency(totals.gross)}</td>
-                  <td className="px-4 py-4 text-right font-semibold text-amber-400 tabular-nums">{formatCurrency(totals.employerSS)}</td>
-                  <td className="px-4 py-4 text-right font-semibold text-amber-400 tabular-nums">{formatCurrency(totals.employerMedicare)}</td>
-                  <td className="px-4 py-4 text-right font-bold text-amber-400 tabular-nums">{formatCurrency(totals.employerSS + totals.employerMedicare)}</td>
-                  <td className="px-4 py-4 text-right font-bold text-white tabular-nums text-base">{formatCurrency(totals.gross + totals.employerSS + totals.employerMedicare)}</td>
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {displayRows.map(emp => (
+                    <tr key={emp.id} className="hover:bg-slate-800/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 text-xs font-bold shrink-0">{emp.name[0]}</div>
+                          <span className="text-white font-medium">{emp.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-300 tabular-nums">{formatCurrency(emp.gross)}</td>
+                      <td className="px-4 py-3 text-right text-amber-400 tabular-nums">{formatCurrency(emp.employerSS || 0)}</td>
+                      <td className="px-4 py-3 text-right text-amber-400 tabular-nums">{formatCurrency(emp.employerMedicare || 0)}</td>
+                      <td className="px-4 py-3 text-right font-medium text-amber-400 tabular-nums">{formatCurrency((emp.employerSS || 0) + (emp.employerMedicare || 0))}</td>
+                      <td className="px-4 py-3 text-right font-bold text-white tabular-nums">{formatCurrency(emp.gross + (emp.employerSS || 0) + (emp.employerMedicare || 0))}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-slate-700 bg-slate-800/50">
+                    <td className="px-4 py-4 font-bold text-white">Totals</td>
+                    <td className="px-4 py-4 text-right font-semibold text-white tabular-nums">{formatCurrency(totals.gross)}</td>
+                    <td className="px-4 py-4 text-right font-semibold text-amber-400 tabular-nums">{formatCurrency(totals.employerSS)}</td>
+                    <td className="px-4 py-4 text-right font-semibold text-amber-400 tabular-nums">{formatCurrency(totals.employerMedicare)}</td>
+                    <td className="px-4 py-4 text-right font-bold text-amber-400 tabular-nums">{formatCurrency(totals.employerSS + totals.employerMedicare)}</td>
+                    <td className="px-4 py-4 text-right font-bold text-white tabular-nums text-base">{formatCurrency(totals.gross + totals.employerSS + totals.employerMedicare)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </InlineFeatureGate>
       )}
 
       {/* Remittance summary */}
       {displayRows.length > 0 && (
-        <div className="hidden sm:block bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6 mb-6">
-          <h2 className="font-semibold text-white mb-1">Remittance Due — {period.label}</h2>
-          <p className="text-xs text-slate-500 mb-5">What you need to send to each tax authority this pay period</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <RemitCard
-              title="IRS EFTPS"
-              amount={totals.eftpsThisPeriod}
-              accent="rose"
-              lines={[
-                { label: 'Federal withholding', value: totals.federalTax },
-                { label: 'Employee SS (6.2%)', value: totals.socialSecurity },
-                { label: 'Employer SS (6.2%)', value: totals.employerSS },
-                { label: 'Employee Medicare (1.45%)', value: totals.medicare },
-                { label: 'Employer Medicare (1.45%)', value: totals.employerMedicare },
-              ]}
-            />
-            <RemitCard
-              title={`${stateName} DOR`}
-              amount={totals.stateTax}
-              accent={stateInfo?.hasIncomeTax ? 'indigo' : 'none'}
-              note={stateInfo?.hasIncomeTax ? null : stateInfo?.note ?? 'No state income tax'}
-              lines={stateInfo?.hasIncomeTax ? [
-                { label: `${stateName} income tax withheld`, value: totals.stateTax },
-              ] : []}
-            />
-            <RemitCard
-              title="Total Labor Cost"
-              amount={totals.gross + totals.employerSS + totals.employerMedicare}
-              accent="emerald"
-              lines={[
-                { label: 'Gross wages', value: totals.gross },
-                { label: 'Employer FICA', value: totals.employerSS + totals.employerMedicare },
-              ]}
-            />
+        <InlineFeatureGate feature="payroll_advanced">
+          <div className="hidden sm:block bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6 mb-6">
+            <h2 className="font-semibold text-white mb-1">Remittance Due — {period.label}</h2>
+            <p className="text-xs text-slate-500 mb-5">What you need to send to each tax authority this pay period</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <RemitCard
+                title="IRS EFTPS"
+                amount={totals.eftpsThisPeriod}
+                accent="rose"
+                lines={[
+                  { label: 'Federal withholding', value: totals.federalTax },
+                  { label: 'Employee SS (6.2%)', value: totals.socialSecurity },
+                  { label: 'Employer SS (6.2%)', value: totals.employerSS },
+                  { label: 'Employee Medicare (1.45%)', value: totals.medicare },
+                  { label: 'Employer Medicare (1.45%)', value: totals.employerMedicare },
+                ]}
+              />
+              <RemitCard
+                title={`${stateName} DOR`}
+                amount={totals.stateTax}
+                accent={stateInfo?.hasIncomeTax ? 'indigo' : 'none'}
+                note={stateInfo?.hasIncomeTax ? null : stateInfo?.note ?? 'No state income tax'}
+                lines={stateInfo?.hasIncomeTax ? [
+                  { label: `${stateName} income tax withheld`, value: totals.stateTax },
+                ] : []}
+              />
+              <RemitCard
+                title="Total Labor Cost"
+                amount={totals.gross + totals.employerSS + totals.employerMedicare}
+                accent="emerald"
+                lines={[
+                  { label: 'Gross wages', value: totals.gross },
+                  { label: 'Employer FICA', value: totals.employerSS + totals.employerMedicare },
+                ]}
+              />
+            </div>
           </div>
-        </div>
+        </InlineFeatureGate>
       )}
 
       {/* Mobile cards */}
@@ -288,25 +293,27 @@ export default function PayrollPage() {
 
         {/* Mobile remittance summary */}
         {displayRows.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-            <p className="text-sm font-semibold text-white">Remittance — {period.label}</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">IRS EFTPS due</span>
-                <span className="text-rose-400 font-semibold tabular-nums">{formatCurrency(totals.eftpsThisPeriod)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">{stateName} withholding</span>
-                <span className={`font-semibold tabular-nums ${stateInfo?.hasIncomeTax ? 'text-indigo-400' : 'text-slate-500'}`}>
-                  {stateInfo?.hasIncomeTax ? formatCurrency(totals.stateTax) : '$0.00'}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-slate-800 pt-2">
-                <span className="text-slate-400">Total labor cost</span>
-                <span className="text-white font-bold tabular-nums">{formatCurrency(totals.gross + totals.employerSS + totals.employerMedicare)}</span>
+          <InlineFeatureGate feature="payroll_advanced">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-white">Remittance — {period.label}</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">IRS EFTPS due</span>
+                  <span className="text-rose-400 font-semibold tabular-nums">{formatCurrency(totals.eftpsThisPeriod)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">{stateName} withholding</span>
+                  <span className={`font-semibold tabular-nums ${stateInfo?.hasIncomeTax ? 'text-indigo-400' : 'text-slate-500'}`}>
+                    {stateInfo?.hasIncomeTax ? formatCurrency(totals.stateTax) : '$0.00'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-slate-800 pt-2">
+                  <span className="text-slate-400">Total labor cost</span>
+                  <span className="text-white font-bold tabular-nums">{formatCurrency(totals.gross + totals.employerSS + totals.employerMedicare)}</span>
+                </div>
               </div>
             </div>
-          </div>
+          </InlineFeatureGate>
         )}
       </div>
 
@@ -378,7 +385,9 @@ function EmpRow({ emp, expanded, onToggle, editingId, editVal, onStartEdit, onCo
       {expanded && (
         <tr className="bg-slate-950/60">
           <td colSpan={8} className="px-6 py-5">
-            <TaxDetail emp={emp} stateInfo={stateInfo} stateName={stateName} />
+            <InlineFeatureGate feature="payroll_advanced">
+              <TaxDetail emp={emp} stateInfo={stateInfo} stateName={stateName} />
+            </InlineFeatureGate>
           </td>
         </tr>
       )}
@@ -520,7 +529,9 @@ function MobileEmpCard({ emp, expanded, onToggle, editingId, editVal, onStartEdi
 
       {expanded && (
         <div className="mt-4 pt-4 border-t border-slate-800">
-          <TaxDetail emp={emp} stateInfo={stateInfo} stateName={stateName} />
+          <InlineFeatureGate feature="payroll_advanced">
+            <TaxDetail emp={emp} stateInfo={stateInfo} stateName={stateName} />
+          </InlineFeatureGate>
         </div>
       )}
     </div>
