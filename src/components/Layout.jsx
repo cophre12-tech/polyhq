@@ -4,13 +4,21 @@ import { useAuth } from '../context/AuthContext.jsx'
 import NotificationBell from './NotificationBell.jsx'
 import { getUnreadCommsCount } from '../lib/db.js'
 
+// Primary tabs shown in the mobile bottom bar
 const OWNER_LINKS = [
   { to: '/owner',           label: 'Dashboard', icon: GridIcon },
   { to: '/owner/schedule',  label: 'Schedule',  icon: CalendarIcon },
-  { to: '/owner/crew',      label: 'Crew',      icon: UsersIcon },
-  { to: '/owner/payroll',   label: 'Payroll',   icon: DollarIcon },
-  { to: '/owner/accounting',label: 'Finance',   icon: LedgerIcon },
+  { to: '/owner/active',    label: 'Active',    icon: ActivityIcon },
   { to: '/owner/comms',     label: 'Chat',      icon: ChatIcon },
+]
+
+// Secondary pages accessible via the "More" drawer
+const OWNER_MORE_LINKS = [
+  { to: '/owner/crew',       label: 'Crew',       icon: UsersIcon },
+  { to: '/owner/payroll',    label: 'Payroll',    icon: DollarIcon },
+  { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
+  { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
+  { to: '/owner/settings',   label: 'Settings',   icon: GearIcon },
 ]
 
 const OWNER_SIDEBAR_LINKS = [
@@ -38,6 +46,7 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [unreadComms, setUnreadComms] = useState(0)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const isOwner = user?.role === 'owner' || user?.role === 'co_owner'
   const bottomLinks = isOwner ? OWNER_LINKS : EMPLOYEE_LINKS
@@ -161,6 +170,7 @@ export default function Layout() {
           const isChat = to.endsWith('/comms')
           return (
             <NavLink key={to} to={to} end
+              onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`
               }>
@@ -176,7 +186,52 @@ export default function Layout() {
             </NavLink>
           )
         })}
+
+        {/* More button — owners only */}
+        {isOwner && (
+          <button
+            onClick={() => setMoreOpen(o => !o)}
+            className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${moreOpen ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <MoreIcon size="mobile" />
+            <span className="leading-none mt-0.5">More</span>
+          </button>
+        )}
       </nav>
+
+      {/* ── More drawer (slide-up) ────────────────────────────────────── */}
+      {isOwner && (
+        <>
+          {/* Backdrop */}
+          {moreOpen && (
+            <div
+              className="md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+              onClick={() => setMoreOpen(false)}
+            />
+          )}
+
+          {/* Sheet */}
+          <div className={`md:hidden fixed bottom-16 inset-x-0 z-40 bg-slate-900 border-t border-slate-800 rounded-t-2xl transition-transform duration-200 ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+            <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mt-3 mb-4" />
+            <div className="px-4 pb-6 grid grid-cols-3 gap-2">
+              {OWNER_MORE_LINKS.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center gap-2 py-4 px-2 rounded-xl border transition-colors text-xs font-medium ${isActive ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600 hover:text-white'}`
+                  }
+                >
+                  <Icon size="mobile" />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -261,6 +316,16 @@ function ChatIcon({ size }) {
   return (
     <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  )
+}
+function MoreIcon({ size }) {
+  const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   )
 }
