@@ -134,7 +134,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────── */}
-      <main className="md:ml-60 min-h-screen pb-20 md:pb-0 relative">
+      <main className="md:ml-60 min-h-screen pb-14 md:pb-0 relative">
         {/* Mobile top header */}
         <header className="md:hidden sticky top-0 z-30 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 flex items-center justify-between px-4 h-12 shrink-0">
           <span className="text-base font-bold text-white">Poly<span className="text-indigo-400">HQ</span></span>
@@ -165,71 +165,86 @@ export default function Layout() {
       </main>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-900 border-t border-slate-800 flex">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-14 bg-slate-900 border-t border-slate-800 flex items-stretch">
         {bottomLinks.map(({ to, label, icon: Icon }) => {
           const isChat = to.endsWith('/comms')
           return (
             <NavLink key={to} to={to} end
               onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`
+                `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500'}`
               }>
               <div className="relative">
                 <Icon size="mobile" />
                 {isChat && unreadComms > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 bg-rose-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
+                  <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 bg-rose-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
                     {unreadComms > 9 ? '9+' : unreadComms}
                   </span>
                 )}
               </div>
-              <span className="leading-none mt-0.5">{label}</span>
+              <span className="text-[10px] font-medium leading-none">{label}</span>
             </NavLink>
           )
         })}
 
-        {/* More button — owners only */}
         {isOwner && (
           <button
             onClick={() => setMoreOpen(o => !o)}
-            className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition-colors ${moreOpen ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${moreOpen ? 'text-indigo-400' : 'text-slate-500'}`}
           >
             <MoreIcon size="mobile" />
-            <span className="leading-none mt-0.5">More</span>
+            <span className="text-[10px] font-medium leading-none">More</span>
           </button>
         )}
       </nav>
 
-      {/* ── More drawer (slide-up) ────────────────────────────────────── */}
+      {/* ── More drawer ──────────────────────────────────────────────── */}
       {isOwner && (
         <>
           {/* Backdrop */}
-          {moreOpen && (
-            <div
-              className="md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
-              onClick={() => setMoreOpen(false)}
-            />
-          )}
+          <div
+            className={`md:hidden fixed inset-0 z-30 bg-black/60 transition-opacity duration-300 ${moreOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={() => setMoreOpen(false)}
+          />
 
-          {/* Sheet — anchored at bottom-0 so translate-y-full clears the viewport completely */}
-          <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 border-t border-slate-800 rounded-t-2xl transition-transform duration-200 ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-            <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mt-3 mb-4" />
-            {/* pb-20 keeps content above the nav bar */}
-            <div className="px-4 pb-20 grid grid-cols-3 gap-2">
+          {/* Sheet — slides up from bottom-0; h-14 spacer keeps content above nav bar */}
+          <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="w-9 h-1 rounded-full bg-slate-700" />
+            </div>
+
+            {/* Nav rows */}
+            <div className="px-3 pt-1 pb-2">
               {OWNER_MORE_LINKS.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end
+                <NavLink key={to} to={to} end
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
-                    `flex flex-col items-center gap-2 py-4 px-2 rounded-xl border transition-colors text-xs font-medium ${isActive ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600 hover:text-white'}`
+                    `flex items-center gap-4 px-4 py-3.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-indigo-600/15 text-indigo-400' : 'text-slate-200 active:bg-slate-800'}`
                   }
                 >
                   <Icon size="mobile" />
-                  {label}
+                  <span className="flex-1 text-sm font-medium">{label}</span>
+                  <ChevronRight />
                 </NavLink>
               ))}
             </div>
+
+            {/* Sign out */}
+            <div className="mx-3 border-t border-slate-800 pt-1 pb-2">
+              <button
+                onClick={() => { setMoreOpen(false); handleLogout() }}
+                className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-rose-400 active:bg-rose-500/10 transition-colors"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="text-sm font-medium">Sign Out</span>
+              </button>
+            </div>
+
+            {/* Spacer — exactly the nav bar height so content never hides behind it */}
+            <div className="h-14" />
           </div>
         </>
       )}
@@ -327,6 +342,13 @@ function MoreIcon({ size }) {
       <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+function ChevronRight() {
+  return (
+    <svg className="w-4 h-4 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   )
 }
