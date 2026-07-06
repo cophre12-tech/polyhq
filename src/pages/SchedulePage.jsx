@@ -269,7 +269,11 @@ export default function SchedulePage() {
                       <div className="flex items-start justify-between gap-1">
                         <p className="text-xs font-semibold text-white leading-tight truncate flex-1">{job.client_name}</p>
                         <div className="flex items-center gap-0.5 shrink-0">
-                          {job.revenue_logged && <span className="text-emerald-400 text-xs font-bold" title="Logged to revenue">$</span>}
+                          {job.price > 0 && job.status === 'completed' && (
+                            job.revenue_logged
+                              ? <span className="text-emerald-400 text-[10px] font-bold leading-none" title="Revenue logged">✓$</span>
+                              : <span className="text-amber-400 text-[10px] font-bold leading-none" title="Revenue not yet logged">!$</span>
+                          )}
                           {job.recurring && <span className="text-slate-600 text-xs">↻</span>}
                         </div>
                       </div>
@@ -403,8 +407,15 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <p className="font-semibold text-white">{job.client_name}</p>
                         {job.recurring && <span className="text-xs text-slate-500">↻</span>}
-                        {job.revenue_logged && (
-                          <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Logged</span>
+                        {job.price > 0 && job.status === 'completed' && (
+                          job.revenue_logged
+                            ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Revenue logged
+                              </span>
+                            : <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                                Revenue pending
+                              </span>
                         )}
                       </div>
                       <p className="text-sm text-slate-400">{job.service_type}</p>

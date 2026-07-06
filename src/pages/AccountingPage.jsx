@@ -472,6 +472,10 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                      {r.source === 'job'
+                        ? <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-1.5 py-0.5 leading-none">Job</span>
+                        : <span className="text-[10px] font-semibold text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-1.5 py-0.5 leading-none">Manual</span>
+                      }
                       <span className="text-xs text-slate-500">{r.date}</span>
                     </div>
                     <p className="text-sm text-white truncate">{r.client}</p>

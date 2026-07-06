@@ -341,6 +341,10 @@ export async function updateJob(id, updates) {
         })
       }
     }
+    // Auto-log revenue whenever a job transitions to completed for the first time
+    if (!prev?.revenue_logged) {
+      await logJobToRevenue(job)
+    }
   }
 
   return job
@@ -456,26 +460,43 @@ export async function markAllNotificationsRead(userId) {
 
 // ── Job → Revenue logging ─────────────────────────────────────────────────────
 export async function logJobToRevenue(job) {
-  if (!job.price || job.revenue_logged) return
+  if (!job.price || parseFloat(job.price) <= 0) return
+  // Atomically claim the slot: only update if revenue_logged is still false.
+  // If another caller already set it true, claimed will be empty — bail out.
+  const { data: claimed } = await supabase
+    .from('jobs')
+    .update({ revenue_logged: true })
+    .eq('id', job.id)
+    .eq('revenue_logged', false)
+    .select('id')
+  if (!claimed?.length) return
   const businessId = job.business_id || await biz()
   const { error } = await supabase.from('revenue').insert({
     business_id: businessId,
-    client: job.client_name,
+    client:       job.client_name,
     service_type: job.service_type,
-    amount: parseFloat(job.price),
-    date: job.date,
+    amount:       parseFloat(job.price),
+    date:         job.date,
+    source:       'job',
+    job_id:       job.id,
   })
-  if (error) throw new Error(error.message)
-  await supabase.from('jobs').update({ revenue_logged: true }).eq('id', job.id)
+  if (error) {
+    // Roll back the flag so the entry can be retried
+    await supabase.from('jobs').update({ revenue_logged: false }).eq('id', job.id)
+    throw new Error(error.message)
+  }
 }
 
 export async function autoCompleteJobs() {
   const today = localDateStr()
+  // Only auto-complete jobs that have a price — priceless jobs need manual review
   const { data } = await supabase
     .from('jobs')
     .update({ status: 'completed' })
     .eq('date', today)
     .neq('status', 'completed')
+    .not('price', 'is', null)
+    .gt('price', 0)
     .select('id')
   return data?.length ?? 0
 }
@@ -486,23 +507,14 @@ export async function autoLogTodayRevenue() {
     .from('jobs')
     .select('*')
     .eq('date', today)
+    .eq('status', 'completed')
     .eq('revenue_logged', false)
     .not('price', 'is', null)
     .gt('price', 0)
   if (!jobs?.length) return 0
   let logged = 0
   for (const job of jobs) {
-    try {
-      await supabase.from('revenue').insert({
-        business_id: job.business_id,
-        client: job.client_name,
-        service_type: job.service_type,
-        amount: parseFloat(job.price),
-        date: job.date,
-      })
-      await supabase.from('jobs').update({ revenue_logged: true }).eq('id', job.id)
-      logged++
-    } catch {}
+    try { await logJobToRevenue(job); logged++ } catch {}
   }
   return logged
 }
@@ -524,7 +536,11 @@ export async function updateRevenue(id, updates) {
 }
 
 export async function deleteRevenue(id) {
+  const { data: rev } = await supabase.from('revenue').select('job_id').eq('id', id).single()
   await supabase.from('revenue').delete().eq('id', id)
+  if (rev?.job_id) {
+    await supabase.from('jobs').update({ revenue_logged: false }).eq('id', rev.job_id)
+  }
 }
 
 export async function getAllRevenue() {
