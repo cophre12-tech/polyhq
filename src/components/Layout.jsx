@@ -19,6 +19,7 @@ const OWNER_MORE_LINKS = [
   { to: '/owner/payroll',    label: 'Payroll',    icon: DollarIcon },
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
+  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon },
   { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
   { to: '/owner/settings',   label: 'Settings',   icon: GearIcon },
 ]
@@ -36,6 +37,7 @@ const OWNER_SIDEBAR_LINKS = [
 const OWNER_FINANCE_LINKS = [
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
+  { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon },
   { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
 ]
 
@@ -347,6 +349,15 @@ function MoreIcon({ size }) {
       <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+function TaxIcon({ size }) {
+  const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l2 2 4-4M7 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 3v6h6" />
     </svg>
   )
 }

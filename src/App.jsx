@@ -23,6 +23,7 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import EmployeeSettingsPage from './pages/EmployeeSettingsPage.jsx'
 import ActiveJobsPage from './pages/ActiveJobsPage.jsx'
 import PersonalFinancialsPage from './pages/PersonalFinancialsPage.jsx'
+import TaxFormsPage from './pages/TaxFormsPage.jsx'
 
 function AuthLayout() {
   const { user } = useAuth()
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />
         <Route path="/employee/settings" element={<RoleGuard role="employee"><EmployeeSettingsPage /></RoleGuard>} />
         <Route path="/owner/personal" element={<RoleGuard role="owner"><SubscriptionGuard feature="personal_financials"><PersonalFinancialsPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/tax-forms" element={<RoleGuard role="owner"><SubscriptionGuard feature="tax_forms"><TaxFormsPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/employee/personal" element={<RoleGuard role="employee"><SubscriptionGuard feature="personal_financials"><PersonalFinancialsPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/employee" element={<RoleGuard role="employee"><EmployeeDashboard /></RoleGuard>} />
       </Route>

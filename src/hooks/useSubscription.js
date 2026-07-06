@@ -8,6 +8,7 @@ const PLAN_FEATURES = {
   accounting:           ['pro', 'business'],
   payroll_advanced:     ['business'],
   personal_financials:  ['pro', 'business'],
+  tax_forms:            ['business'],
 }
 
 export const EMPLOYEE_LIMITS = {

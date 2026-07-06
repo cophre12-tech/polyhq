@@ -6,6 +6,7 @@ const FEATURE_INFO = {
   accounting:          { name: 'Accounting & Reports',           minPlan: 'Pro',      priceLabel: '$15/mo' },
   payroll_advanced:    { name: 'Detailed Tax Breakdown & EFTPS', minPlan: 'Business', priceLabel: '$29/mo' },
   personal_financials: { name: 'Personal Financials',            minPlan: 'Pro',      priceLabel: '$15/mo' },
+  tax_forms:           { name: 'Tax Forms',                      minPlan: 'Business', priceLabel: '$29/mo' },
 }
 
 // Full-page lock — use as the return value of a page component
