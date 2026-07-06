@@ -540,6 +540,10 @@ export async function addExpense(data) {
   return exp
 }
 
+export async function updateExpense(id, updates) {
+  await supabase.from('expenses').update(updates).eq('id', id)
+}
+
 export async function deleteExpense(id) {
   await supabase.from('expenses').delete().eq('id', id)
 }

@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import {
   getAllRevenue, addRevenue, deleteRevenue,
-  getAllExpenses, addExpense, deleteExpense,
+  getAllExpenses, addExpense, updateExpense, deleteExpense,
 } from '../lib/db.js'
 import { formatCurrency } from '../lib/payroll.js'
 
@@ -521,7 +521,17 @@ function ExpensesTab({ expenses, onUpdate }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${CAT_COLORS[exp.category]}`}>{exp.category}</span>
-                      <span className="text-xs text-slate-500">{exp.date}</span>
+                      <input
+                        type="date"
+                        defaultValue={exp.date}
+                        onBlur={async e => {
+                          if (e.target.value && e.target.value !== exp.date) {
+                            await updateExpense(exp.id, { date: e.target.value })
+                            onUpdate()
+                          }
+                        }}
+                        className="text-xs text-slate-400 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-none cursor-pointer transition-colors"
+                      />
                     </div>
                     <p className="text-sm text-white truncate">{exp.description}</p>
                   </div>
