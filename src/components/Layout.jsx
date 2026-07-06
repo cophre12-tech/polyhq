@@ -19,6 +19,7 @@ const OWNER_MORE_LINKS = [
   { to: '/owner/payroll',    label: 'Payroll',    icon: DollarIcon },
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
   { to: '/owner/settings',   label: 'Settings',   icon: GearIcon },
 ]
 
@@ -35,12 +36,14 @@ const OWNER_SIDEBAR_LINKS = [
 const OWNER_FINANCE_LINKS = [
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
 ]
 
 const EMPLOYEE_LINKS = [
   { to: '/employee',           label: 'My Hours',    icon: ClockIcon },
   { to: '/employee/schedule',  label: 'My Schedule', icon: CalendarIcon },
   { to: '/employee/comms',     label: 'Chat',        icon: ChatIcon },
+  { to: '/employee/personal',  label: 'Personal',    icon: WalletIcon },
   { to: '/employee/settings',  label: 'Settings',    icon: GearIcon },
 ]
 
@@ -344,6 +347,15 @@ function MoreIcon({ size }) {
       <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+function WalletIcon({ size }) {
+  const cls = size === 'mobile' ? 'w-5 h-5' : 'w-4 h-4 shrink-0'
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 6h18a2 2 0 012 2v8a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2z" />
+      <circle cx="17" cy="13" r="1" fill="currentColor" stroke="none" />
     </svg>
   )
 }

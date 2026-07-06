@@ -4,9 +4,10 @@ const ADMIN_EMAIL = 'cophre12@gmail.com'
 
 // Features available per plan
 const PLAN_FEATURES = {
-  invoicing:        ['pro', 'business'],
-  accounting:       ['pro', 'business'],
-  payroll_advanced: ['business'],  // detailed tax breakdown, employer obligations, remittance
+  invoicing:            ['pro', 'business'],
+  accounting:           ['pro', 'business'],
+  payroll_advanced:     ['business'],
+  personal_financials:  ['pro', 'business'],
 }
 
 export const EMPLOYEE_LIMITS = {

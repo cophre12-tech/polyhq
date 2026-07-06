@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom'
 import { useSubscription } from '../hooks/useSubscription.js'
 
 const FEATURE_INFO = {
-  invoicing:        { name: 'Invoicing',                       minPlan: 'Pro',      priceLabel: '$15/mo' },
-  accounting:       { name: 'Accounting & Reports',            minPlan: 'Pro',      priceLabel: '$15/mo' },
-  payroll_advanced: { name: 'Detailed Tax Breakdown & EFTPS',  minPlan: 'Business', priceLabel: '$29/mo' },
+  invoicing:           { name: 'Invoicing',                      minPlan: 'Pro',      priceLabel: '$15/mo' },
+  accounting:          { name: 'Accounting & Reports',           minPlan: 'Pro',      priceLabel: '$15/mo' },
+  payroll_advanced:    { name: 'Detailed Tax Breakdown & EFTPS', minPlan: 'Business', priceLabel: '$29/mo' },
+  personal_financials: { name: 'Personal Financials',            minPlan: 'Pro',      priceLabel: '$15/mo' },
 }
 
 // Full-page lock — use as the return value of a page component

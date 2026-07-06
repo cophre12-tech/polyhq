@@ -911,3 +911,59 @@ export async function deleteService(id) {
 export async function seedDefaultServices(businessId) {
   await supabase.from('services').insert(DEFAULT_SERVICES.map(s => ({ ...s, business_id: businessId })))
 }
+
+// ── Personal Finances (user-scoped only — no business_id) ─────────────────────
+
+export async function getPersonalIncome(userId) {
+  const { data } = await supabase
+    .from('personal_income')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+  return data || []
+}
+
+export async function addPersonalIncome({ userId, amount, date, notes }) {
+  const { data, error } = await supabase
+    .from('personal_income')
+    .insert({ user_id: userId, amount: parseFloat(amount) || 0, date, notes: notes || '' })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deletePersonalIncome(id) {
+  await supabase.from('personal_income').delete().eq('id', id)
+}
+
+export async function getPersonalExpenses(userId) {
+  const { data } = await supabase
+    .from('personal_expenses')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+  return data || []
+}
+
+export async function addPersonalExpense({ userId, description, amount, category, date, recurring, frequency }) {
+  const { data, error } = await supabase
+    .from('personal_expenses')
+    .insert({
+      user_id: userId,
+      description,
+      amount: parseFloat(amount) || 0,
+      category,
+      date,
+      recurring: !!recurring,
+      frequency: frequency || 'monthly',
+    })
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deletePersonalExpense(id) {
+  await supabase.from('personal_expenses').delete().eq('id', id)
+}
