@@ -6,13 +6,10 @@ import {
 import {
   getAllRevenue, addRevenue, updateRevenue, deleteRevenue,
   getAllExpenses, addExpense, updateExpense, deleteExpense,
+  getServices,
 } from '../lib/db.js'
 import { formatCurrency } from '../lib/payroll.js'
 
-const SERVICE_TYPES = [
-  'Lawn Care', 'Landscaping', 'Cleaning', 'Pressure Washing',
-  'Snow Removal', 'Painting', 'Handyman', 'Consulting', 'Other',
-]
 
 const EXPENSE_CATEGORIES = ['Equipment', 'Supplies', 'Travel', 'Labor', 'Other']
 
@@ -56,11 +53,13 @@ export default function AccountingPage() {
   const [filter, setFilter] = useState('year')
   const [revenue, setRevenue] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [serviceNames, setServiceNames] = useState([])
 
   async function load() {
-    const [rev, exp] = await Promise.all([getAllRevenue(), getAllExpenses()])
+    const [rev, exp, svcs] = await Promise.all([getAllRevenue(), getAllExpenses(), getServices()])
     setRevenue(rev)
     setExpenses(exp)
+    setServiceNames(svcs.map(s => s.name))
   }
   useEffect(() => { load() }, [])
 
@@ -116,7 +115,7 @@ export default function AccountingPage() {
 
       {tab === 'charts'   && <ChartsTab revenue={revenue} expenses={expenses} />}
       {tab === 'overview' && <OverviewTab revenue={filteredRevenue} expenses={filteredExpenses} totalRevenue={totalRevenue} totalExpenses={totalExpenses} netProfit={netProfit} />}
-      {tab === 'revenue'  && <RevenueTab revenue={revenue} onUpdate={load} />}
+      {tab === 'revenue'  && <RevenueTab revenue={revenue} serviceNames={serviceNames} onUpdate={load} />}
       {tab === 'expenses' && <ExpensesTab expenses={expenses} onUpdate={load} />}
       {tab === 'writeoffs'&& <WriteoffsTab expenses={filteredExpenses} />}
     </div>
@@ -406,9 +405,16 @@ function OverviewTab({ revenue, expenses, totalRevenue, totalExpenses, netProfit
 
 // ── Revenue ───────────────────────────────────────────────────────────────────
 
-function RevenueTab({ revenue, onUpdate }) {
-  const [form, setForm] = useState({ date: TODAY, client: '', service_type: 'Lawn Care', amount: '' })
+function RevenueTab({ revenue, serviceNames, onUpdate }) {
+  const [form, setForm] = useState({ date: TODAY, client: '', service_type: '', amount: '' })
   const [error, setError] = useState('')
+
+  // Keep form default in sync with first available service
+  useEffect(() => {
+    if (serviceNames.length > 0 && !form.service_type) {
+      setForm(p => ({ ...p, service_type: serviceNames[0] }))
+    }
+  }, [serviceNames])
 
   function set(f, v) { setForm(p => ({ ...p, [f]: v })) }
 
@@ -432,7 +438,7 @@ function RevenueTab({ revenue, onUpdate }) {
           <Field label="Client Name"><input type="text" value={form.client} onChange={e => set('client', e.target.value)} required placeholder="Smith Residence" className="input" /></Field>
           <Field label="Service Type">
             <select value={form.service_type} onChange={e => set('service_type', e.target.value)} className="input">
-              {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
+              {serviceNames.map(s => <option key={s}>{s}</option>)}
             </select>
           </Field>
           <Field label="Amount ($)"><input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => set('amount', e.target.value)} required placeholder="0.00" className="input" /></Field>
@@ -461,7 +467,10 @@ function RevenueTab({ revenue, onUpdate }) {
                         }}
                         className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-transparent hover:border-emerald-500/40 focus:border-emerald-500 focus:outline-none cursor-pointer transition-colors appearance-none"
                       >
-                        {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                        {/* Keep current value selectable even if removed from settings */}
+                        {[...new Set([r.service_type, ...serviceNames])].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
                       </select>
                       <span className="text-xs text-slate-500">{r.date}</span>
                     </div>
