@@ -225,7 +225,7 @@ export default function SchedulePage() {
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">{job.service_type}</p>
                       {job.price > 0 && (
-                        <p className="text-xs text-emerald-400/80 tabular-nums">${parseFloat(job.price).toFixed(2)}</p>
+                        <p className="text-xs text-emerald-400 tabular-nums">${parseFloat(job.price).toFixed(2)}</p>
                       )}
                       {job.client_address && (
                         <a
