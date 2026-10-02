@@ -54,8 +54,8 @@ const FEATURE_INFO = {
 }
 
 const PLAN_COLORS = {
-  Pro:      { bar: 'from-indigo-500 to-violet-500', btn: 'bg-indigo-600 hover:bg-indigo-500', badge: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/25' },
-  Business: { bar: 'from-violet-500 to-purple-600', btn: 'bg-violet-600 hover:bg-violet-500', badge: 'text-violet-400 bg-violet-500/10 border-violet-500/25' },
+  Pro:      { bar: ' ', btn: 'btn-primary', badge: 'text-accent-fg bg-accent-subtle border-accent/25' },
+  Business: { bar: ' ', btn: 'btn-primary', badge: 'text-accent-fg bg-accent-subtle border-accent/25' },
 }
 
 // Full-page lock — returned instead of a page component
@@ -71,20 +71,20 @@ export default function FeatureGate({ feature }) {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 flex justify-start">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden w-full max-w-md">
-        <div className={`h-1 bg-gradient-to-r ${colors.bar}`} />
+      <div className="bg-surface border border-line rounded-2xl overflow-hidden w-full max-w-md">
+        <div className={`h-1  ${colors.bar}`} />
         <div className="p-8 flex flex-col items-center text-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-            <LockIcon className="w-6 h-6 text-slate-400" />
+          <div className="w-14 h-14 rounded-2xl bg-raised border border-line flex items-center justify-center">
+            <LockIcon className="w-6 h-6 text-fg-muted" />
           </div>
 
           <div>
             {/* Plan badges */}
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-xs font-semibold text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2.5 py-0.5 capitalize">
+              <span className="text-xs font-semibold text-fg-subtle bg-raised border border-line rounded-full px-2.5 py-0.5 capitalize">
                 {planLabel} plan
               </span>
-              <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-3 h-3 text-fg-subtle shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
               <span className={`text-xs font-semibold rounded-full px-2.5 py-0.5 border ${colors.badge}`}>
@@ -92,23 +92,23 @@ export default function FeatureGate({ feature }) {
               </span>
             </div>
 
-            <h2 className="text-lg font-bold text-white mb-2">{info.name}</h2>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">{info.description}</p>
+            <h2 className="text-lg font-semibold text-fg mb-2">{info.name}</h2>
+            <p className="text-sm text-fg-muted leading-relaxed max-w-sm">{info.description}</p>
           </div>
 
           {isOwner ? (
             <>
               <button
                 onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
-                className={`text-white font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors ${colors.btn}`}
+                className={`text-fg font-semibold rounded-xl px-6 py-2.5 text-sm transition-colors ${colors.btn}`}
               >
                 View Plans &amp; Upgrade
               </button>
-              <p className="text-xs text-slate-600">{info.priceLabel} · Cancel anytime</p>
+              <p className="text-xs text-fg-subtle">{info.priceLabel} · Cancel anytime</p>
             </>
           ) : (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl px-5 py-4 text-sm text-slate-400">
-              Ask your business owner to upgrade to <span className="text-white font-semibold">{info.minPlan}</span> to unlock this feature.
+            <div className="bg-raised border border-line rounded-xl px-5 py-4 text-sm text-fg-muted">
+              Ask your business owner to upgrade to <span className="text-fg font-semibold">{info.minPlan}</span> to unlock this feature.
             </div>
           )}
         </div>
@@ -134,23 +134,23 @@ export function InlineFeatureGate({ feature, children }) {
         {children}
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-slate-900/95 border border-slate-700 rounded-xl px-6 py-5 flex flex-col items-center gap-3 shadow-xl max-w-xs w-full mx-4">
-          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-            <LockIcon className="w-4 h-4 text-slate-400" />
+        <div className="bg-surface/95 border border-line rounded-xl px-6 py-5 flex flex-col items-center gap-3 max-w-xs w-full mx-4">
+          <div className="w-9 h-9 rounded-xl bg-raised border border-line flex items-center justify-center">
+            <LockIcon className="w-4 h-4 text-fg-muted" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-white mb-0.5">{info.name}</p>
-            <p className="text-xs text-slate-400">{info.minPlan} plan · {info.priceLabel}</p>
+            <p className="text-sm font-semibold text-fg mb-0.5">{info.name}</p>
+            <p className="text-xs text-fg-muted">{info.minPlan} plan · {info.priceLabel}</p>
           </div>
           {isOwner ? (
             <button
               onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
-              className={`text-white font-semibold rounded-lg px-5 py-2 text-xs transition-colors ${colors.btn}`}
+              className={`text-fg font-semibold rounded-lg px-5 py-2 text-xs transition-colors ${colors.btn}`}
             >
               Upgrade to {info.minPlan}
             </button>
           ) : (
-            <p className="text-xs text-slate-500 text-center">Contact your owner to upgrade.</p>
+            <p className="text-xs text-fg-subtle text-center">Contact your owner to upgrade.</p>
           )}
         </div>
       </div>

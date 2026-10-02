@@ -56,25 +56,25 @@ export default function PersonalFinancialsPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-3 mb-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Personal Financials</h1>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/25 rounded-full px-2.5 py-0.5">
+          <h1 className="text-xl sm:text-2xl font-semibold text-fg">Personal Financials</h1>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg-muted bg-surface border border-line rounded-full px-2.5 py-0.5">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             Only you can see this
           </span>
         </div>
-        <p className="text-slate-400 text-sm">
+        <p className="text-fg-muted text-sm">
           {isOwner
             ? 'Log your take-home pay and track personal expenses — never visible to your team.'
             : 'Your earnings and personal expenses — completely private from your employer and teammates.'}
         </p>
       </div>
 
-      <div className="flex gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1 mb-6 w-fit">
+      <div className="flex gap-1 bg-surface border border-line rounded-xl p-1 mb-6 w-fit">
         {[['income', 'Income'], ['expenses', 'Expenses']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}>
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-overlay text-fg' : 'text-fg-muted hover:text-fg'}`}>
             {label}
           </button>
         ))}
@@ -162,7 +162,7 @@ function EmployeeIncomeSection({ user }) {
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         {periods.map((p, i) => (
           <button key={i} onClick={() => setPeriodIdx(i)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${i === periodIdx ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${i === periodIdx ? 'bg-accent text-fg' : 'bg-raised text-fg-muted hover:bg-overlay'}`}>
             {p.label}
           </button>
         ))}
@@ -170,15 +170,15 @@ function EmployeeIncomeSection({ user }) {
 
       {loading ? (
         <div className="flex justify-center py-14">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
         </div>
       ) : (
         <>
           {/* Main pay card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-8">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Est. Net Pay — {periods[periodIdx].label}</p>
-            <p className="text-4xl sm:text-5xl font-black text-white tabular-nums mb-6">{formatCurrency(periodPay.netPay)}</p>
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800">
+          <div className="bg-surface border border-line rounded-2xl p-5 sm:p-8">
+            <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-2">Est. Net Pay — {periods[periodIdx].label}</p>
+            <p className="text-4xl sm:text-5xl font-semibold text-fg tabular-nums mb-6">{formatCurrency(periodPay.netPay)}</p>
+            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-line">
               <PayStat label="Hours" value={formatHours(periodPay.hours)} />
               <PayStat label="Gross" value={formatCurrency(periodPay.gross)} />
               <PayStat label="Tax" value={`−${formatCurrency(periodPay.totalDeductions)}`} dim />
@@ -186,30 +186,30 @@ function EmployeeIncomeSection({ user }) {
           </div>
 
           {/* All-time total */}
-          <div className="bg-violet-500/5 border border-violet-500/15 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+          <div className="bg-surface border border-line rounded-xl px-5 py-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold text-violet-400/80 uppercase tracking-wider">Total Earned Since Joining</p>
-              <p className="text-2xl font-black text-white mt-0.5 tabular-nums">{formatCurrency(allTimePay.netPay)}</p>
+              <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider">Total Earned Since Joining</p>
+              <p className="text-2xl font-semibold text-fg mt-0.5 tabular-nums">{formatCurrency(allTimePay.netPay)}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs text-slate-500 tabular-nums">{formatHours(allTimePay.hours)} total hours</p>
-              <p className="text-xs text-slate-500 mt-0.5">${rate.toFixed(2)}/hr</p>
+              <p className="text-xs text-fg-subtle tabular-nums">{formatHours(allTimePay.hours)} total hours</p>
+              <p className="text-xs text-fg-subtle mt-0.5">${rate.toFixed(2)}/hr</p>
             </div>
           </div>
 
           {/* Weekly history */}
           {weeklyHistory.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-1">Recent Pay History</p>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="divide-y divide-slate-800/60">
+              <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-3 px-1">Recent Pay History</p>
+              <div className="bg-surface border border-line rounded-xl overflow-hidden">
+                <div className="divide-y divide-line">
                   {weeklyHistory.map((week, i) => (
                     <div key={i} className="px-4 sm:px-5 py-3 flex items-center gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-300">Week of {week.label}</p>
-                        <p className="text-xs text-slate-500">{formatHours(week.hours)} · gross {formatCurrency(week.pay.gross)}</p>
+                        <p className="text-sm font-medium text-fg-muted">Week of {week.label}</p>
+                        <p className="text-xs text-fg-subtle">{formatHours(week.hours)} · gross {formatCurrency(week.pay.gross)}</p>
                       </div>
-                      <p className="text-sm font-bold text-white tabular-nums shrink-0">{formatCurrency(week.pay.netPay)}</p>
+                      <p className="text-sm font-semibold text-fg tabular-nums shrink-0">{formatCurrency(week.pay.netPay)}</p>
                     </div>
                   ))}
                 </div>
@@ -217,7 +217,7 @@ function EmployeeIncomeSection({ user }) {
             </div>
           )}
 
-          <p className="text-xs text-slate-600">* Estimates use your current hourly rate (${rate.toFixed(2)}/hr) and single-filer withholding tables. Actual net pay may vary.</p>
+          <p className="text-xs text-fg-subtle">* Estimates use your current hourly rate (${rate.toFixed(2)}/hr) and single-filer withholding tables. Actual net pay may vary.</p>
         </>
       )}
     </div>
@@ -286,45 +286,45 @@ function OwnerIncomeSection({ user }) {
     <div className="space-y-6">
       {/* Log button / form */}
       {showForm ? (
-        <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-          <p className="text-sm font-semibold text-white">Log Take-Home Pay</p>
+        <form onSubmit={handleAdd} className="bg-surface border border-line rounded-xl p-5 space-y-4">
+          <p className="text-sm font-semibold text-fg">Log Take-Home Pay</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Amount ($)</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Amount ($)</label>
               <input type="number" min="0" step="0.01" value={form.amount}
                 onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="1200.00" className="input" required autoFocus />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Date</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Date</label>
               <input type="date" value={form.date}
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 className="input" required />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Notes (optional)</label>
+            <label className="block text-xs font-medium text-fg-muted mb-1.5">Notes (optional)</label>
             <input type="text" value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="e.g. Week of Jan 6" className="input" />
           </div>
           {saveError && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{saveError}</p>
+            <p className="text-xs text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">{saveError}</p>
           )}
           <div className="flex gap-2">
             <button type="submit" disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-5 py-2 text-sm transition-colors">
+              className="btn-primary px-5 py-2 text-sm">
               {saving ? 'Saving…' : 'Save Entry'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
-              className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors">
+              className="px-4 py-2 rounded-lg text-fg-muted hover:text-fg hover:bg-raised text-sm transition-colors">
               Cancel
             </button>
           </div>
         </form>
       ) : (
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors">
+          className="btn-primary flex gap-2 rounded-xl px-5 py-2.5 text-sm">
           <PlusIcon /> Log Take-Home Pay
         </button>
       )}
@@ -333,7 +333,7 @@ function OwnerIncomeSection({ user }) {
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
         {periods.map((p, i) => (
           <button key={i} onClick={() => setPeriodIdx(i)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${i === periodIdx ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${i === periodIdx ? 'bg-accent text-fg' : 'bg-raised text-fg-muted hover:bg-overlay'}`}>
             {p.label}
           </button>
         ))}
@@ -343,41 +343,41 @@ function OwnerIncomeSection({ user }) {
         <>
           {/* Totals */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{periods[periodIdx].label}</p>
-              <p className="text-3xl font-black text-white tabular-nums">{formatCurrency(periodTotal)}</p>
-              <p className="text-xs text-slate-500 mt-1.5">{filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}</p>
+            <div className="bg-surface border border-line rounded-xl p-5">
+              <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-2">{periods[periodIdx].label}</p>
+              <p className="text-3xl font-semibold text-fg tabular-nums">{formatCurrency(periodTotal)}</p>
+              <p className="text-xs text-fg-subtle mt-1.5">{filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}</p>
             </div>
-            <div className="bg-violet-500/5 border border-violet-500/15 rounded-xl p-5">
-              <p className="text-xs font-semibold text-violet-400/80 uppercase tracking-wider mb-2">Total Earned (All Time)</p>
-              <p className="text-3xl font-black text-white tabular-nums">{formatCurrency(allTotal)}</p>
-              <p className="text-xs text-slate-500 mt-1.5">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</p>
+            <div className="bg-surface border border-line rounded-xl p-5">
+              <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-2">Total Earned (All Time)</p>
+              <p className="text-3xl font-semibold text-fg tabular-nums">{formatCurrency(allTotal)}</p>
+              <p className="text-xs text-fg-subtle mt-1.5">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</p>
             </div>
           </div>
 
           {/* Entry list */}
           {filtered.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl py-12 text-center">
-              <p className="text-slate-400 font-medium mb-1">No entries for this period</p>
-              <p className="text-slate-500 text-sm">Click "Log Take-Home Pay" to add one.</p>
+            <div className="bg-surface border border-line rounded-xl py-12 text-center">
+              <p className="text-fg-muted font-medium mb-1">No entries for this period</p>
+              <p className="text-fg-subtle text-sm">Click "Log Take-Home Pay" to add one.</p>
             </div>
           ) : (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-              <div className="divide-y divide-slate-800/60">
+            <div className="bg-surface border border-line rounded-xl overflow-hidden">
+              <div className="divide-y divide-line">
                 {filtered.map(entry => (
                   <div key={entry.id} className="px-4 sm:px-5 py-3.5 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white tabular-nums">{formatCurrency(entry.amount)}</p>
-                      {entry.notes && <p className="text-xs text-slate-500 truncate mt-0.5">{entry.notes}</p>}
+                      <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(entry.amount)}</p>
+                      {entry.notes && <p className="text-xs text-fg-subtle truncate mt-0.5">{entry.notes}</p>}
                     </div>
-                    <p className="text-xs text-slate-500 shrink-0 tabular-nums">{entry.date}</p>
+                    <p className="text-xs text-fg-subtle shrink-0 tabular-nums">{entry.date}</p>
                     {confirmDel === entry.id ? (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => handleDelete(entry.id)} className="text-xs text-white bg-rose-600 hover:bg-rose-500 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
-                        <button onClick={() => setConfirmDel(null)} className="text-xs text-slate-400 hover:text-white px-1.5 py-1">No</button>
+                        <button onClick={() => handleDelete(entry.id)} className="text-xs text-fg bg-danger hover:bg-danger/85 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
+                        <button onClick={() => setConfirmDel(null)} className="text-xs text-fg-muted hover:text-fg px-1.5 py-1">No</button>
                       </div>
                     ) : (
-                      <button onClick={() => setConfirmDel(entry.id)} className="shrink-0 text-slate-600 hover:text-rose-400 transition-colors p-1">
+                      <button onClick={() => setConfirmDel(entry.id)} className="shrink-0 text-fg-subtle hover:text-danger transition-colors p-1">
                         <TrashIcon />
                       </button>
                     )}
@@ -458,49 +458,49 @@ function ExpensesSection({ userId }) {
     <div className="space-y-6">
       {/* Summary row */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-violet-500/5 border border-violet-500/15 rounded-xl px-3 sm:px-5 py-4">
-          <p className="text-xs font-semibold text-violet-400/80 uppercase tracking-wider leading-tight mb-1">Monthly Recurring</p>
-          <p className="text-xl sm:text-2xl font-black text-white tabular-nums">{formatCurrency(monthlyCommitted)}</p>
-          <p className="text-xs text-slate-500 mt-0.5">est. / mo</p>
+        <div className="bg-surface border border-line rounded-xl px-3 sm:px-5 py-4">
+          <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider leading-tight mb-1">Monthly Recurring</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg tabular-nums">{formatCurrency(monthlyCommitted)}</p>
+          <p className="text-xs text-fg-subtle mt-0.5">est. / mo</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl px-3 sm:px-5 py-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider leading-tight mb-1">This Month</p>
-          <p className="text-xl sm:text-2xl font-black text-white tabular-nums">{formatCurrency(thisMonthTotal)}</p>
-          <p className="text-xs text-slate-500 mt-0.5">logged</p>
+        <div className="bg-surface border border-line rounded-xl px-3 sm:px-5 py-4">
+          <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider leading-tight mb-1">This Month</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg tabular-nums">{formatCurrency(thisMonthTotal)}</p>
+          <p className="text-xs text-fg-subtle mt-0.5">logged</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl px-3 sm:px-5 py-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider leading-tight mb-1">All Time</p>
-          <p className="text-xl sm:text-2xl font-black text-white tabular-nums">{formatCurrency(allTotal)}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{expenses.length} entries</p>
+        <div className="bg-surface border border-line rounded-xl px-3 sm:px-5 py-4">
+          <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider leading-tight mb-1">All Time</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg tabular-nums">{formatCurrency(allTotal)}</p>
+          <p className="text-xs text-fg-subtle mt-0.5">{expenses.length} entries</p>
         </div>
       </div>
 
       {/* Add expense */}
       {showForm ? (
-        <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-          <p className="text-sm font-semibold text-white">Add Expense</p>
+        <form onSubmit={handleAdd} className="bg-surface border border-line rounded-xl p-5 space-y-4">
+          <p className="text-sm font-semibold text-fg">Add Expense</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Description</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Description</label>
               <input type="text" value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="e.g. Mortgage, Netflix, Car payment" className="input" required autoFocus />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Amount ($)</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Amount ($)</label>
               <input type="number" min="0" step="0.01" value={form.amount}
                 onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" className="input" required />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Category</label>
               <select value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="input">
                 {EXPENSE_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Date</label>
+              <label className="block text-xs font-medium text-fg-muted mb-1.5">Date</label>
               <input type="date" value={form.date}
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="input" required />
             </div>
@@ -509,8 +509,8 @@ function ExpensesSection({ userId }) {
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input type="checkbox" checked={form.recurring}
                 onChange={e => setForm(f => ({ ...f, recurring: e.target.checked }))}
-                className="w-4 h-4 rounded accent-indigo-500" />
-              <span className="text-sm text-slate-300">Recurring</span>
+                className="w-4 h-4 rounded accent-accent" />
+              <span className="text-sm text-fg-muted">Recurring</span>
             </label>
             {form.recurring && (
               <select value={form.frequency}
@@ -523,22 +523,22 @@ function ExpensesSection({ userId }) {
             )}
           </div>
           {saveError && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{saveError}</p>
+            <p className="text-xs text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">{saveError}</p>
           )}
           <div className="flex gap-2">
             <button type="submit" disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-5 py-2 text-sm transition-colors">
+              className="btn-primary px-5 py-2 text-sm">
               {saving ? 'Saving…' : 'Save'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
-              className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors">
+              className="px-4 py-2 rounded-lg text-fg-muted hover:text-fg hover:bg-raised text-sm transition-colors">
               Cancel
             </button>
           </div>
         </form>
       ) : (
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors">
+          className="btn-primary flex gap-2 rounded-xl px-5 py-2.5 text-sm">
           <PlusIcon /> Add Expense
         </button>
       )}
@@ -546,20 +546,20 @@ function ExpensesSection({ userId }) {
       {/* Category breakdown */}
       {Object.keys(categoryTotals).length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-1">By Category</p>
+          <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-3 px-1">By Category</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {EXPENSE_CATEGORIES.filter(c => categoryTotals[c.key]).map(cat => (
               <button key={cat.key}
                 onClick={() => setCatFilter(f => f === cat.key ? 'all' : cat.key)}
-                className={`bg-slate-900 border rounded-xl px-3 py-3 text-left transition-all ${catFilter === cat.key ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-800 hover:border-slate-700'}`}>
+                className={`bg-surface border rounded-xl px-3 py-3 text-left transition-all ${catFilter === cat.key ? 'border-accent ring-1 ring-accent/20' : 'border-line hover:border-line-strong'}`}>
                 <span className="text-xl mb-1.5 block">{cat.emoji}</span>
-                <p className="text-xs text-slate-400 leading-tight mb-0.5">{cat.label}</p>
-                <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(categoryTotals[cat.key])}</p>
+                <p className="text-xs text-fg-muted leading-tight mb-0.5">{cat.label}</p>
+                <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(categoryTotals[cat.key])}</p>
               </button>
             ))}
           </div>
           {catFilter !== 'all' && (
-            <button onClick={() => setCatFilter('all')} className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 px-1">
+            <button onClick={() => setCatFilter('all')} className="mt-2 text-xs text-fg underline-offset-4 hover:underline px-1">
               Clear filter
             </button>
           )}
@@ -569,16 +569,16 @@ function ExpensesSection({ userId }) {
       {/* Expense list */}
       {loading ? (
         <div className="flex justify-center py-10">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl py-12 text-center">
-          <p className="text-slate-400 font-medium mb-1">No expenses yet</p>
-          <p className="text-slate-500 text-sm">Add your first recurring bill or expense above.</p>
+        <div className="bg-surface border border-line rounded-xl py-12 text-center">
+          <p className="text-fg-muted font-medium mb-1">No expenses yet</p>
+          <p className="text-fg-subtle text-sm">Add your first recurring bill or expense above.</p>
         </div>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="divide-y divide-slate-800/60">
+        <div className="bg-surface border border-line rounded-xl overflow-hidden">
+          <div className="divide-y divide-line">
             {filtered.map(exp => {
               const cat = EXPENSE_CATEGORIES.find(c => c.key === exp.category) || EXPENSE_CATEGORIES[7]
               return (
@@ -586,23 +586,23 @@ function ExpensesSection({ userId }) {
                   <span className="text-lg w-6 text-center shrink-0">{cat.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-white truncate">{exp.description}</p>
+                      <p className="text-sm font-medium text-fg truncate">{exp.description}</p>
                       {exp.recurring && (
-                        <span className="text-[10px] font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-full px-1.5 py-0.5 shrink-0">
+                        <span className="text-2xs font-semibold text-fg-muted bg-raised border border-line rounded-full px-1.5 py-0.5 shrink-0">
                           {FREQUENCY_LABELS[exp.frequency] || 'Recurring'}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{cat.label} · {exp.date}</p>
+                    <p className="text-xs text-fg-subtle mt-0.5">{cat.label} · {exp.date}</p>
                   </div>
-                  <p className="text-sm font-semibold text-white tabular-nums shrink-0">{formatCurrency(exp.amount)}</p>
+                  <p className="text-sm font-semibold text-fg tabular-nums shrink-0">{formatCurrency(exp.amount)}</p>
                   {confirmDel === exp.id ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <button onClick={() => handleDelete(exp.id)} className="text-xs text-white bg-rose-600 hover:bg-rose-500 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
-                      <button onClick={() => setConfirmDel(null)} className="text-xs text-slate-400 hover:text-white px-1.5 py-1">No</button>
+                      <button onClick={() => handleDelete(exp.id)} className="text-xs text-fg bg-danger hover:bg-danger/85 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
+                      <button onClick={() => setConfirmDel(null)} className="text-xs text-fg-muted hover:text-fg px-1.5 py-1">No</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDel(exp.id)} className="shrink-0 text-slate-600 hover:text-rose-400 transition-colors p-1">
+                    <button onClick={() => setConfirmDel(exp.id)} className="shrink-0 text-fg-subtle hover:text-danger transition-colors p-1">
                       <TrashIcon />
                     </button>
                   )}
@@ -621,8 +621,8 @@ function ExpensesSection({ userId }) {
 function PayStat({ label, value, dim }) {
   return (
     <div>
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className={`text-sm sm:text-base font-semibold tabular-nums ${dim ? 'text-rose-400' : 'text-slate-200'}`}>{value}</p>
+      <p className="text-xs text-fg-subtle mb-0.5">{label}</p>
+      <p className={`text-sm sm:text-base font-semibold tabular-nums ${dim ? 'text-danger' : 'text-fg'}`}>{value}</p>
     </div>
   )
 }

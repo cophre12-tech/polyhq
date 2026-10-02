@@ -89,112 +89,112 @@ export default function Signup() {
     }
   }
 
-  const inputCls = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition'
+  const inputCls = 'input'
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold tracking-tight text-white mb-2">
-            Poly<span className="text-indigo-400">HQ</span>
+          <h1 className="text-4xl font-semibold text-fg mb-2">
+            Poly<span className="text-accent-fg">HQ</span>
           </h1>
-          <p className="text-slate-400 text-sm">Create your account</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-fg-subtle">Create your account</p>
         </div>
 
         {prefillEmail && (
-          <div className="mb-5 bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3 text-amber-300 text-sm">
+          <div className="mb-5 bg-warning/10 border border-warning/25 rounded-xl px-4 py-3 text-warning text-sm">
             Your login was found but setup wasn't completed. Finish creating your account below.
           </div>
         )}
 
         {/* Mode toggle */}
-        <div className="flex rounded-lg bg-slate-900 border border-slate-800 p-1 mb-6">
+        <div className="flex rounded-lg bg-surface border border-line p-1 mb-4">
           <button
             type="button"
             onClick={() => { setMode('owner'); setError('') }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'owner' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'owner' ? 'bg-accent text-fg' : 'text-fg-muted hover:text-fg'}`}
           >
             Start a business
           </button>
           <button
             type="button"
             onClick={() => { setMode('employee'); setError('') }}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'employee' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'employee' ? 'bg-accent text-fg' : 'text-fg-muted hover:text-fg'}`}
           >
             Join a team
           </button>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-7">
+        <div className="card p-6 sm:p-7">
           {mode === 'owner' ? (
             <form onSubmit={handleOwnerSignup} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Business Name</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Business Name</label>
                 <input type="text" value={form.businessName} onChange={e => set('businessName', e.target.value)}
                   placeholder="Conor's Window Cleaning" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Your Name</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Your Name</label>
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
                   required placeholder="Jane Smith" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Email</label>
                 <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
                   required placeholder="you@company.com" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Password</label>
                 <input type="password" value={form.password} onChange={e => set('password', e.target.value)}
                   required placeholder="Min. 6 characters" className={inputCls} />
               </div>
               {error && (
-                <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-lg px-3.5 py-2.5">{error}</div>
+                <div className="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3.5 py-2.5">{error}</div>
               )}
               <button type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-2.5 text-sm transition-colors mt-1">
+                className="btn-primary w-full py-2.5 mt-1">
                 {loading ? 'Creating…' : 'Create Business Account'}
               </button>
             </form>
           ) : (
             <form onSubmit={handleEmployeeSignup} className="space-y-4">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3.5 py-2.5 text-emerald-400 text-sm">
+              <div className="bg-raised border border-line rounded-lg px-3.5 py-2.5 text-fg-muted text-sm">
                 Ask your manager for the business invite code, then create your account below.
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Invite Code</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Invite Code</label>
                 <input type="text" value={form.inviteCode} onChange={e => set('inviteCode', e.target.value.toUpperCase())}
                   required maxLength={6} placeholder="ABC123"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition tracking-widest uppercase font-mono" />
+                  className="input tracking-wider uppercase font-mono" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Your Name</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Your Name</label>
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
                   required placeholder="Jane Smith" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Email</label>
                 <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
                   required placeholder="you@company.com" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                <label className="block text-sm font-medium text-fg-muted mb-1.5">Password</label>
                 <input type="password" value={form.password} onChange={e => set('password', e.target.value)}
                   required placeholder="Min. 6 characters" className={inputCls} />
               </div>
               {error && (
-                <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-lg px-3.5 py-2.5">{error}</div>
+                <div className="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3.5 py-2.5">{error}</div>
               )}
               <button type="submit" disabled={loading}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-2.5 text-sm transition-colors mt-1">
+                className="btn-primary w-full py-2.5 mt-1">
                 {loading ? 'Joining…' : 'Join Team'}
               </button>
             </form>
           )}
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-sm text-fg-subtle mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium">Sign in</Link>
+            <Link to="/login" className="text-fg underline-offset-4 hover:underline transition-colors font-medium">Sign in</Link>
           </p>
         </div>
       </div>

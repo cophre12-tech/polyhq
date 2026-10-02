@@ -38,22 +38,22 @@ function AdminGuard({ children }) {
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (user.email !== ADMIN_EMAIL) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-xl p-6 text-center">
-          <h1 className="text-lg font-semibold text-white mb-2">Admin access required</h1>
-          <p className="text-sm text-slate-400 mb-6">
-            You're signed in as <span className="text-slate-200">{user.email}</span>, which isn't an admin account.
+      <div className="min-h-screen bg-base flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-surface border border-line rounded-xl p-6 text-center">
+          <h1 className="text-lg font-semibold text-fg mb-2">Admin access required</h1>
+          <p className="text-sm text-fg-muted mb-6">
+            You're signed in as <span className="text-fg">{user.email}</span>, which isn't an admin account.
           </p>
           <div className="flex flex-col gap-2">
             <button
               onClick={logout}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
+              className="btn-primary w-full text-sm px-4 py-2.5"
             >
               Sign out and switch account
             </button>
             <a
               href={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'}
-              className="text-sm text-slate-400 hover:text-slate-200 py-2"
+              className="text-sm text-fg-muted hover:text-fg py-2"
             >
               Back to dashboard
             </a>

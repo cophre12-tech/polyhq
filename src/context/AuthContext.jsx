@@ -190,9 +190,9 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ user, plan, businesses, loading, login, logout, refreshUser, refreshPlan, switchBusiness, createBusiness }}>
       {loading ? (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Loading…</p>
+        <div className="min-h-screen bg-base flex flex-col items-center justify-center gap-4">
+          <div className="w-8 h-8 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
+          <p className="text-fg-subtle text-sm">Loading…</p>
         </div>
       ) : children}
     </AuthContext.Provider>

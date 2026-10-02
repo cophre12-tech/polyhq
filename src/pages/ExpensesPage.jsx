@@ -6,11 +6,11 @@ import { formatCurrency } from '../lib/payroll.js'
 const CATEGORIES = ['Equipment', 'Supplies', 'Travel', 'Labor', 'Other']
 
 const CAT_COLORS = {
-  Equipment: 'bg-blue-500/15 text-blue-400',
-  Supplies:  'bg-emerald-500/15 text-emerald-400',
-  Travel:    'bg-amber-500/15 text-amber-400',
-  Labor:     'bg-purple-500/15 text-purple-400',
-  Other:     'bg-slate-600/50 text-slate-300',
+  Equipment: 'bg-raised text-fg-muted',
+  Supplies:  'bg-success/15 text-success',
+  Travel:    'bg-warning/15 text-warning',
+  Labor:     'bg-raised text-fg-muted',
+  Other:     'bg-overlay/50 text-fg-muted',
 }
 
 export default function ExpensesPage() {
@@ -57,15 +57,15 @@ export default function ExpensesPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Expenses</h1>
-        <p className="text-slate-400 mt-1 text-sm">Log and track business expenses by category</p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-fg">Expenses</h1>
+        <p className="text-fg-muted mt-1 text-sm">Log and track business expenses by category</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left column: form + breakdown */}
         <div className="space-y-4">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-            <h3 className="font-semibold text-white mb-5">Log Expense</h3>
+          <div className="bg-surface rounded-xl border border-line p-6">
+            <h3 className="font-semibold text-fg mb-5">Log Expense</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Field label="Date">
                 <input
@@ -111,11 +111,11 @@ export default function ExpensesPage() {
                 />
               </Field>
 
-              {error && <p className="text-rose-400 text-xs">{error}</p>}
+              {error && <p className="text-danger text-xs">{error}</p>}
 
               <button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 text-sm transition-colors"
+                className="btn-primary w-full py-2.5 text-sm"
               >
                 Add Expense
               </button>
@@ -123,21 +123,21 @@ export default function ExpensesPage() {
           </div>
 
           {byCategory.length > 0 && (
-            <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-              <h3 className="font-semibold text-white mb-4">By Category</h3>
+            <div className="bg-surface rounded-xl border border-line p-6">
+              <h3 className="font-semibold text-fg mb-4">By Category</h3>
               <div className="space-y-3">
                 {byCategory.map(({ cat, total: catTotal, count }) => (
                   <div key={cat} className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-white">{cat}</p>
-                      <p className="text-xs text-slate-500">{count} item{count !== 1 ? 's' : ''}</p>
+                      <p className="text-sm text-fg">{cat}</p>
+                      <p className="text-xs text-fg-subtle">{count} item{count !== 1 ? 's' : ''}</p>
                     </div>
-                    <span className="text-sm font-semibold text-indigo-400 tabular-nums">{formatCurrency(catTotal)}</span>
+                    <span className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(catTotal)}</span>
                   </div>
                 ))}
-                <div className="border-t border-slate-700 pt-3 flex justify-between items-center">
-                  <span className="font-semibold text-white text-sm">Total</span>
-                  <span className="font-bold text-white tabular-nums">{formatCurrency(total)}</span>
+                <div className="border-t border-line pt-3 flex justify-between items-center">
+                  <span className="font-semibold text-fg text-sm">Total</span>
+                  <span className="font-semibold text-fg tabular-nums">{formatCurrency(total)}</span>
                 </div>
               </div>
             </div>
@@ -146,39 +146,39 @@ export default function ExpensesPage() {
 
         {/* Right column: expense list */}
         <div className="lg:col-span-2">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-              <h3 className="font-semibold text-white">All Expenses</h3>
-              <span className="text-sm text-slate-400 tabular-nums">
+          <div className="bg-surface rounded-xl border border-line overflow-hidden">
+            <div className="px-6 py-4 border-b border-line flex justify-between items-center">
+              <h3 className="font-semibold text-fg">All Expenses</h3>
+              <span className="text-sm text-fg-muted tabular-nums">
                 {expenses.length} items · {formatCurrency(total)}
               </span>
             </div>
 
             {expenses.length === 0 ? (
-              <p className="px-6 py-12 text-center text-slate-500 text-sm">No expenses logged yet.</p>
+              <p className="px-6 py-12 text-center text-fg-subtle text-sm">No expenses logged yet.</p>
             ) : (
-              <div className="divide-y divide-slate-800/60">
+              <div className="divide-y divide-line">
                 {expenses.map(exp => (
                   <div
                     key={exp.id}
-                    className="flex items-center px-6 py-4 hover:bg-slate-800/40 transition-colors group"
+                    className="flex items-center px-6 py-4 hover:bg-raised/40 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${CAT_COLORS[exp.category]}`}>
                           {exp.category}
                         </span>
-                        <span className="text-xs text-slate-500">{exp.date}</span>
+                        <span className="text-xs text-fg-subtle">{exp.date}</span>
                       </div>
-                      <p className="text-sm text-white truncate">{exp.description}</p>
+                      <p className="text-sm text-fg truncate">{exp.description}</p>
                     </div>
                     <div className="flex items-center gap-4 ml-4 shrink-0">
-                      <span className="text-base font-semibold text-white tabular-nums">
+                      <span className="text-base font-semibold text-fg tabular-nums">
                         {formatCurrency(exp.amount)}
                       </span>
                       <button
                         onClick={() => handleDelete(exp.id)}
-                        className="text-slate-600 hover:text-rose-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-lg leading-none"
+                        className="text-fg-subtle hover:text-danger transition-colors sm:opacity-0 sm:group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-lg leading-none"
                         title="Delete expense"
                       >
                         ×
@@ -198,7 +198,7 @@ export default function ExpensesPage() {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-fg-muted mb-1.5">{label}</label>
       {children}
     </div>
   )

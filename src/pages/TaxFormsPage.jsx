@@ -135,8 +135,8 @@ export default function TaxFormsPage() {
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Tax Forms</h1>
-            <p className="text-slate-400 text-sm">Estimated figures for tax preparation — confirm with your CPA before filing.</p>
+            <h1 className="text-xl sm:text-2xl font-semibold text-fg mb-1">Tax Forms</h1>
+            <p className="text-fg-muted text-sm">Estimated figures for tax preparation — confirm with your CPA before filing.</p>
           </div>
           {structure && (
             <div className="flex items-center gap-2 no-print">
@@ -147,7 +147,7 @@ export default function TaxFormsPage() {
                 <option value={currentYear - 2}>{currentYear - 2}</option>
               </select>
               <button onClick={handlePrint}
-                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl px-4 py-2 text-sm transition-colors border border-slate-700">
+                className="flex items-center gap-1.5 bg-raised hover:bg-overlay text-fg font-semibold rounded-xl px-4 py-2 text-sm transition-colors border border-line">
                 <PrintIcon /> Export PDF
               </button>
             </div>
@@ -155,9 +155,9 @@ export default function TaxFormsPage() {
         </div>
 
         {/* Disclaimer banner */}
-        <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3.5">
-          <span className="text-amber-400 mt-0.5 shrink-0">⚠️</span>
-          <p className="text-amber-300 text-sm leading-relaxed">
+        <div className="mb-6 flex items-start gap-3 bg-warning/10 border border-warning/25 rounded-xl px-4 py-3.5">
+          <span className="text-warning mt-0.5 shrink-0">⚠️</span>
+          <p className="text-warning text-sm leading-relaxed">
             <span className="font-semibold">For estimation only.</span> These calculations are based on data entered in PolyHQ and may not reflect all deductions, credits, or tax law changes.
             Consult a licensed CPA or tax professional before filing any return.
           </p>
@@ -170,22 +170,22 @@ export default function TaxFormsPage() {
           <>
             {/* Change structure link */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5">
+              <div className="flex items-center gap-2 bg-surface border border-line rounded-xl px-4 py-2.5">
                 <span className="text-base">{STRUCTURES.find(s => s.id === structure)?.icon}</span>
                 <div>
-                  <p className="text-xs text-slate-500 leading-none mb-0.5">Business Structure</p>
-                  <p className="text-sm font-semibold text-white">{STRUCTURES.find(s => s.id === structure)?.label}</p>
+                  <p className="text-xs text-fg-subtle leading-none mb-0.5">Business Structure</p>
+                  <p className="text-sm font-semibold text-fg">{STRUCTURES.find(s => s.id === structure)?.label}</p>
                 </div>
               </div>
               <button onClick={() => pickStructure(null)}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors no-print">
+                className="text-xs text-fg underline-offset-4 hover:underline transition-colors no-print">
                 Change
               </button>
             </div>
 
             {loading ? (
               <div className="flex justify-center py-14">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
               </div>
             ) : (
               <>
@@ -257,14 +257,14 @@ export default function TaxFormsPage() {
 function StructurePicker({ onPick }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-white mb-4">What is your business structure?</p>
+      <p className="text-sm font-semibold text-fg mb-4">What is your business structure?</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {STRUCTURES.map(s => (
           <button key={s.id} onClick={() => onPick(s.id)}
-            className="bg-slate-900 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-800/80 rounded-xl p-5 text-left transition-all group">
+            className="bg-surface border border-line hover:border-line-strong hover:bg-raised/80 rounded-xl p-5 text-left transition-all group">
             <span className="text-3xl mb-3 block">{s.icon}</span>
-            <p className="text-sm font-semibold text-white mb-1 group-hover:text-indigo-300 transition-colors">{s.label}</p>
-            <p className="text-xs text-slate-500">{s.sub}</p>
+            <p className="text-sm font-semibold text-fg mb-1 group-hover:text-fg transition-colors">{s.label}</p>
+            <p className="text-xs text-fg-subtle">{s.sub}</p>
           </button>
         ))}
       </div>
@@ -277,22 +277,22 @@ function StructurePicker({ onPick }) {
 function NetProfitBanner({ year, gross, expenses, net }) {
   const isProfit = net >= 0
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 mb-8">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+    <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6 mb-8">
+      <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider mb-4">
         {year} Running Summary
       </p>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <p className="text-xs text-slate-500 mb-1">Gross Revenue</p>
-          <p className="text-xl sm:text-2xl font-black text-emerald-400 tabular-nums">{formatCurrency(gross)}</p>
+          <p className="text-xs text-fg-subtle mb-1">Gross Revenue</p>
+          <p className="text-xl sm:text-2xl font-semibold text-success tabular-nums">{formatCurrency(gross)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-1">Total Expenses</p>
-          <p className="text-xl sm:text-2xl font-black text-rose-400 tabular-nums">−{formatCurrency(expenses)}</p>
+          <p className="text-xs text-fg-subtle mb-1">Total Expenses</p>
+          <p className="text-xl sm:text-2xl font-semibold text-danger tabular-nums">−{formatCurrency(expenses)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-1">Net {isProfit ? 'Profit' : 'Loss'}</p>
-          <p className={`text-xl sm:text-2xl font-black tabular-nums ${isProfit ? 'text-white' : 'text-rose-400'}`}>
+          <p className="text-xs text-fg-subtle mb-1">Net {isProfit ? 'Profit' : 'Loss'}</p>
+          <p className={`text-xl sm:text-2xl font-semibold tabular-nums ${isProfit ? 'text-fg' : 'text-danger'}`}>
             {formatCurrency(net)}
           </p>
         </div>
@@ -448,36 +448,36 @@ function Form1065View({ year, bizName, grossRevenue, yearExpenses, netProfit, ow
       />
 
       {/* K-1 Breakdown */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-3">
-          <span className="text-xs font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-0.5 shrink-0">Schedule K-1</span>
-          <h3 className="text-sm font-bold text-white">Partner Distributive Share — Set Ownership %</h3>
+      <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-line flex items-center gap-3">
+          <span className="text-xs font-semibold text-fg-muted bg-raised border border-line rounded-md px-2 py-0.5 shrink-0">Schedule K-1</span>
+          <h3 className="text-sm font-semibold text-fg">Partner Distributive Share — Set Ownership %</h3>
         </div>
 
         {owners.length === 0 ? (
           <div className="px-5 py-8 text-center">
-            <p className="text-slate-400 text-sm">No partners found. Add co-owners in the Crew page.</p>
+            <p className="text-fg-muted text-sm">No partners found. Add co-owners in the Crew page.</p>
           </div>
         ) : (
           <>
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-line">
               {owners.map(o => {
                 const pct   = parseFloat(splits[o.id]) || 0
                 const share = netProfit * (pct / 100)
                 return (
                   <div key={o.id} className="px-5 py-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5">
+                      <div className="w-8 h-8 rounded-full bg-overlay border border-line flex items-center justify-center text-fg text-sm font-semibold shrink-0 mt-0.5">
                         {o.name?.[0]}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 flex-wrap mb-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white">{o.name}</p>
-                            <p className="text-xs text-slate-500">{o.email} · {o.role}</p>
+                            <p className="text-sm font-semibold text-fg">{o.name}</p>
+                            <p className="text-xs text-fg-subtle">{o.email} · {o.role}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <label className="text-xs text-slate-400">Ownership %</label>
+                            <label className="text-xs text-fg-muted">Ownership %</label>
                             <input
                               type="number" min="0" max="100" step="0.1"
                               value={splits[o.id] ?? ''}
@@ -486,10 +486,10 @@ function Form1065View({ year, bizName, grossRevenue, yearExpenses, netProfit, ow
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 bg-slate-800/50 rounded-lg px-3 py-2.5">
+                        <div className="grid grid-cols-3 gap-3 bg-raised/50 rounded-lg px-3 py-2.5">
                           <K1Line label="Ownership" value={`${pct.toFixed(1)}%`} />
                           <K1Line label="Share of Revenue" value={formatCurrency(grossRevenue * pct / 100)} />
-                          <K1Line label={`Share of ${netProfit >= 0 ? 'Profit' : 'Loss'}`} value={formatCurrency(Math.abs(share))} color={share >= 0 ? 'text-emerald-400' : 'text-rose-400'} />
+                          <K1Line label={`Share of ${netProfit >= 0 ? 'Profit' : 'Loss'}`} value={formatCurrency(Math.abs(share))} color={share >= 0 ? 'text-success' : 'text-danger'} />
                         </div>
                       </div>
                     </div>
@@ -499,14 +499,14 @@ function Form1065View({ year, bizName, grossRevenue, yearExpenses, netProfit, ow
             </div>
 
             {pctError && (
-              <div className="mx-5 mb-4 mt-1 bg-rose-500/10 border border-rose-500/25 rounded-lg px-3 py-2 text-xs text-rose-400">
+              <div className="mx-5 mb-4 mt-1 bg-danger/10 border border-danger/25 rounded-lg px-3 py-2 text-xs text-danger">
                 Ownership percentages total {totalPct.toFixed(1)}% — must equal 100% before filing.
               </div>
             )}
 
-            <div className="px-5 py-4 border-t border-slate-800 bg-slate-800/30 flex justify-between items-center">
-              <p className="text-xs font-semibold text-slate-400">Total partnership income / (loss)</p>
-              <p className={`text-sm font-bold tabular-nums ${netProfit >= 0 ? 'text-white' : 'text-rose-400'}`}>{formatCurrency(netProfit)}</p>
+            <div className="px-5 py-4 border-t border-line bg-raised/30 flex justify-between items-center">
+              <p className="text-xs font-semibold text-fg-muted">Total partnership income / (loss)</p>
+              <p className={`text-sm font-semibold tabular-nums ${netProfit >= 0 ? 'text-fg' : 'text-danger'}`}>{formatCurrency(netProfit)}</p>
             </div>
           </>
         )}
@@ -564,11 +564,11 @@ function Form1120SView({ year, bizName, grossRevenue, yearExpenses, netProfit })
       />
 
       {/* Pass-through note */}
-      <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-5">
-        <p className="text-sm font-semibold text-indigo-300 mb-2">S-Corporation Pass-Through</p>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          An S-Corp pays <span className="text-white font-medium">no federal income tax at the entity level</span> (with limited exceptions).
-          The <span className="text-white font-medium">{formatCurrency(netProfit)}</span> ordinary income passes through to shareholders
+      <div className="bg-surface border border-line rounded-xl p-5">
+        <p className="text-sm font-semibold text-fg mb-2">S-Corporation Pass-Through</p>
+        <p className="text-sm text-fg-muted leading-relaxed">
+          An S-Corp pays <span className="text-fg font-medium">no federal income tax at the entity level</span> (with limited exceptions).
+          The <span className="text-fg font-medium">{formatCurrency(netProfit)}</span> ordinary income passes through to shareholders
           via Schedule K-1 and is reported on each shareholder's personal Form 1040.
           Shareholders who are also employees must receive reasonable W-2 compensation subject to payroll taxes.
         </p>
@@ -595,21 +595,21 @@ function Form1120SView({ year, bizName, grossRevenue, yearExpenses, netProfit })
 function SEtaxSection({ netProfit, seEarnings, seTax, seDeductible }) {
   if (netProfit <= 0) return null
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-3">
-        <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-md px-2 py-0.5 shrink-0">Schedule SE</span>
-        <h3 className="text-sm font-bold text-white">Self-Employment Tax Calculator</h3>
+    <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-line flex items-center gap-3">
+        <span className="text-xs font-semibold text-warning bg-warning/10 border border-warning/20 rounded-md px-2 py-0.5 shrink-0">Schedule SE</span>
+        <h3 className="text-sm font-semibold text-fg">Self-Employment Tax Calculator</h3>
       </div>
       <div className="px-5 py-4 space-y-1">
         <FormLineRow line="1"   label="Net profit from Schedule C"                             value={formatCurrency(netProfit)} />
         <FormLineRow line="2"   label="Multiply by 92.35% (net earnings subject to SE tax)"   value={formatCurrency(seEarnings)} />
         <FormLineRow line="3"   label="Self-employment tax (15.3%)"                            value={formatCurrency(seTax)} bold />
         <FormLineRow line="4"   label="Deductible half of SE tax (on Form 1040)"               value={formatCurrency(seDeductible)} dim />
-        <div className="pt-3 mt-3 border-t border-slate-800">
+        <div className="pt-3 mt-3 border-t border-line">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-slate-300">Breakdown: 12.4% Social Security + 2.9% Medicare</p>
-              <p className="text-xs text-slate-500 mt-0.5">Social Security portion applies to first $168,600 of net earnings (2024)</p>
+              <p className="text-sm text-fg-muted">Breakdown: 12.4% Social Security + 2.9% Medicare</p>
+              <p className="text-xs text-fg-subtle mt-0.5">Social Security portion applies to first $168,600 of net earnings (2024)</p>
             </div>
           </div>
         </div>
@@ -623,45 +623,45 @@ function SEtaxSection({ netProfit, seEarnings, seTax, seDeductible }) {
 function QuarterlySection({ year, estimatedIncomeTax, seTax, totalTax, quarterlyPayment }) {
   if (totalTax <= 0) return null
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-3">
-        <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-0.5 shrink-0">Form 1040-ES</span>
-        <h3 className="text-sm font-bold text-white">Quarterly Estimated Tax Payments — {year}</h3>
+    <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-line flex items-center gap-3">
+        <span className="text-xs font-semibold text-fg-muted bg-raised border border-line rounded-md px-2 py-0.5 shrink-0">Form 1040-ES</span>
+        <h3 className="text-sm font-semibold text-fg">Quarterly Estimated Tax Payments — {year}</h3>
       </div>
       <div className="px-5 py-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          <div className="bg-slate-800/50 rounded-lg px-3 py-2.5 text-center">
-            <p className="text-xs text-slate-500 mb-1">Est. Income Tax</p>
-            <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(estimatedIncomeTax)}</p>
-            <p className="text-[10px] text-slate-600">~22% federal bracket</p>
+          <div className="bg-raised/50 rounded-lg px-3 py-2.5 text-center">
+            <p className="text-xs text-fg-subtle mb-1">Est. Income Tax</p>
+            <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(estimatedIncomeTax)}</p>
+            <p className="text-2xs text-fg-subtle">~22% federal bracket</p>
           </div>
-          <div className="bg-slate-800/50 rounded-lg px-3 py-2.5 text-center">
-            <p className="text-xs text-slate-500 mb-1">SE Tax</p>
-            <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(seTax)}</p>
-            <p className="text-[10px] text-slate-600">15.3% × 92.35%</p>
+          <div className="bg-raised/50 rounded-lg px-3 py-2.5 text-center">
+            <p className="text-xs text-fg-subtle mb-1">SE Tax</p>
+            <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(seTax)}</p>
+            <p className="text-2xs text-fg-subtle">15.3% × 92.35%</p>
           </div>
-          <div className="bg-slate-800/50 rounded-lg px-3 py-2.5 text-center">
-            <p className="text-xs text-slate-500 mb-1">Total Est. Tax</p>
-            <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(totalTax)}</p>
+          <div className="bg-raised/50 rounded-lg px-3 py-2.5 text-center">
+            <p className="text-xs text-fg-subtle mb-1">Total Est. Tax</p>
+            <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(totalTax)}</p>
           </div>
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2.5 text-center">
-            <p className="text-xs text-indigo-400 mb-1">Each Payment</p>
-            <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(quarterlyPayment)}</p>
-            <p className="text-[10px] text-indigo-400">÷ 4 quarters</p>
+          <div className="bg-raised border border-line rounded-lg px-3 py-2.5 text-center">
+            <p className="text-xs text-fg-muted mb-1">Each Payment</p>
+            <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(quarterlyPayment)}</p>
+            <p className="text-2xs text-fg-subtle">÷ 4 quarters</p>
           </div>
         </div>
 
         <div className="space-y-1.5">
           {QUARTER_DUE_DATES.map(q => (
-            <div key={q.q} className="flex items-center gap-3 bg-slate-800/40 rounded-lg px-3 py-2.5">
-              <span className="text-xs font-bold text-slate-400 w-6 shrink-0">{q.q}</span>
-              <p className="text-sm text-slate-300 flex-1">Income {q.income}</p>
-              <p className="text-xs text-slate-500">Due <span className="text-white font-medium">{q.due}</span></p>
-              <p className="text-sm font-bold text-white tabular-nums shrink-0">{formatCurrency(quarterlyPayment)}</p>
+            <div key={q.q} className="flex items-center gap-3 bg-raised/40 rounded-lg px-3 py-2.5">
+              <span className="text-xs font-semibold text-fg-muted w-6 shrink-0">{q.q}</span>
+              <p className="text-sm text-fg-muted flex-1">Income {q.income}</p>
+              <p className="text-xs text-fg-subtle">Due <span className="text-fg font-medium">{q.due}</span></p>
+              <p className="text-sm font-semibold text-fg tabular-nums shrink-0">{formatCurrency(quarterlyPayment)}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-600 mt-3">Pay via IRS Direct Pay at irs.gov or mail Form 1040-ES.</p>
+        <p className="text-xs text-fg-subtle mt-3">Pay via IRS Direct Pay at irs.gov or mail Form 1040-ES.</p>
       </div>
     </div>
   )
@@ -671,14 +671,14 @@ function QuarterlySection({ year, estimatedIncomeTax, seTax, totalTax, quarterly
 
 function FormSection({ title, badge, lines, note }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-3">
+    <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-line flex items-center gap-3">
         {badge && (
-          <span className="text-xs font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-md px-2 py-0.5 shrink-0">
+          <span className="text-xs font-semibold text-fg-muted bg-raised border border-line rounded-md px-2 py-0.5 shrink-0">
             {badge}
           </span>
         )}
-        <h3 className="text-sm font-bold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-fg">{title}</h3>
       </div>
       <div className="px-5 py-4 space-y-1">
         {lines.map((l, i) => (
@@ -695,7 +695,7 @@ function FormSection({ title, badge, lines, note }) {
       </div>
       {note && (
         <div className="px-5 pb-4">
-          <p className="text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2">
+          <p className="text-xs text-warning/80 bg-warning/5 border border-warning/15 rounded-lg px-3 py-2">
             ✎ {note}
           </p>
         </div>
@@ -706,20 +706,20 @@ function FormSection({ title, badge, lines, note }) {
 
 function FormLineRow({ line, label, value, bold, dim, highlight, loss }) {
   return (
-    <div className={`flex items-start gap-3 py-1.5 rounded-lg px-2 ${highlight ? (loss ? 'bg-rose-500/5' : 'bg-emerald-500/5') : ''}`}>
+    <div className={`flex items-start gap-3 py-1.5 rounded-lg px-2 ${highlight ? (loss ? 'bg-danger/5' : 'bg-success/5') : ''}`}>
       {line && (
-        <span className="text-[10px] font-mono text-slate-600 mt-0.5 w-10 shrink-0 leading-5">L{line}</span>
+        <span className="text-2xs font-mono text-fg-subtle mt-0.5 w-10 shrink-0 leading-5">L{line}</span>
       )}
-      <p className={`flex-1 text-sm ${dim ? 'text-slate-600' : bold ? 'text-white font-semibold' : 'text-slate-300'}`}>
+      <p className={`flex-1 text-sm ${dim ? 'text-fg-subtle' : bold ? 'text-fg font-semibold' : 'text-fg-muted'}`}>
         {label}
       </p>
       {value !== undefined && (
         <p className={`text-sm tabular-nums shrink-0 ${
           highlight
-            ? (loss ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold')
-            : dim ? 'text-slate-600'
-            : bold ? 'text-white font-semibold'
-            : 'text-slate-300'
+            ? (loss ? 'text-danger font-semibold' : 'text-success font-semibold')
+            : dim ? 'text-fg-subtle'
+            : bold ? 'text-fg font-semibold'
+            : 'text-fg-muted'
         }`}>
           {value}
         </p>
@@ -728,18 +728,18 @@ function FormLineRow({ line, label, value, bold, dim, highlight, loss }) {
   )
 }
 
-function K1Line({ label, value, color = 'text-white' }) {
+function K1Line({ label, value, color = 'text-fg' }) {
   return (
     <div>
-      <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
-      <p className={`text-xs font-bold tabular-nums ${color}`}>{value}</p>
+      <p className="text-2xs text-fg-subtle mb-0.5">{label}</p>
+      <p className={`text-xs font-semibold tabular-nums ${color}`}>{value}</p>
     </div>
   )
 }
 
 function DisclaimerNote({ extra }) {
   return (
-    <p className="text-xs text-slate-600 leading-relaxed px-1">
+    <p className="text-xs text-fg-subtle leading-relaxed px-1">
       ⚠ For estimation only — consult a licensed CPA before filing.
       {extra && ` ${extra}`}
     </p>
