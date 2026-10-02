@@ -30,23 +30,18 @@ export default function Signup() {
       })
       if (authErr) throw new Error(authErr.message)
 
-      const { data: business, error: bizErr } = await supabase
-        .from('businesses')
-        .insert({ name: form.businessName.trim() || form.name.trim() + "'s Business" })
-        .select()
-        .single()
+      if (!authData.session) throw new Error('Signup succeeded but no session was returned. Please log in.')
+
+      // Creates the business, owner profile and membership in one transaction.
+      // (A client-side insert().select() fails RLS: the SELECT policy can't see
+      // the new business until the profile/membership rows exist.)
+      const { data: businessId, error: bizErr } = await supabase.rpc('create_owned_business', {
+        p_name: form.businessName.trim() || form.name.trim() + "'s Business",
+        p_owner_name: form.name.trim(),
+      })
       if (bizErr) throw new Error(bizErr.message)
 
-      const { error: profileErr } = await supabase.from('profiles').insert({
-        id: authData.user.id,
-        business_id: business.id,
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        role: 'owner',
-      })
-      if (profileErr) throw new Error(profileErr.message)
-
-      await seedDefaultServices(business.id)
+      await seedDefaultServices(businessId)
       await refreshUser()
       navigate('/owner')
     } catch (err) {

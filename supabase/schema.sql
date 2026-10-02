@@ -8,6 +8,15 @@
 -- STEP 1: CREATE ALL TABLES  (no functions referenced yet)
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- Many-to-many catalog of which auth users own/belong to which businesses.
+-- Used for multi-business switching; role mirrors profiles.role for the owner.
+create table public.user_businesses (
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  role        text not null default 'owner',
+  primary key (user_id, business_id)
+);
+
 create table public.businesses (
   id             uuid primary key default gen_random_uuid(),
   name           text not null default '',
@@ -232,6 +241,26 @@ $$;
 -- STEP 4: ENABLE RLS AND ATTACH POLICIES  (functions are defined now)
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- USER_BUSINESSES
+alter table public.user_businesses enable row level security;
+
+create policy "users can view their own business memberships"
+  on public.user_businesses for select
+  using (user_id = auth.uid());
+
+create policy "users can insert their own business memberships"
+  on public.user_businesses for insert
+  with check (user_id = auth.uid());
+
+create policy "users can update their own business memberships"
+  on public.user_businesses for update
+  using  (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "users can delete their own business memberships"
+  on public.user_businesses for delete
+  using (user_id = auth.uid());
+
 -- BUSINESSES
 alter table public.businesses enable row level security;
 
@@ -239,13 +268,19 @@ create policy "any authenticated user can create a business"
   on public.businesses for insert
   with check (auth.uid() is not null);
 
+-- Owners can see their current business AND any other businesses they own —
+-- required so the multi-business switcher can display all business names.
 create policy "business members can view their business"
   on public.businesses for select
-  using (id = current_business_id());
+  using (
+    id = current_business_id()
+    OR id IN (select business_id from public.user_businesses where user_id = auth.uid())
+  );
 
 create policy "business members can update their business"
   on public.businesses for update
-  using (id = current_business_id());
+  using  (id = current_business_id())
+  with check (id = current_business_id());
 
 -- PROFILES
 alter table public.profiles enable row level security;
@@ -258,9 +293,26 @@ create policy "business members can view all profiles"
   on public.profiles for select
   using (business_id = current_business_id());
 
-create policy "business members can update profiles"
+-- Own-profile update: allows switchBusiness, but only to a business the user
+-- already belongs to — prevents arbitrary tenant hopping.
+create policy "users can update own profile"
   on public.profiles for update
-  using (business_id = current_business_id());
+  using (id = auth.uid())
+  with check (
+    id = auth.uid() AND (
+      business_id = current_business_id()
+      OR business_id IN (
+        select business_id from public.user_businesses where user_id = auth.uid()
+      )
+    )
+  );
+
+-- Team-member update: owners can edit other profiles within the same business,
+-- and cannot move a profile to a different business.
+create policy "business members can update team profiles"
+  on public.profiles for update
+  using  (id <> auth.uid() AND business_id = current_business_id())
+  with check (business_id = current_business_id());
 
 create policy "owners can delete profiles"
   on public.profiles for delete

@@ -59,37 +59,51 @@ async function biz() {
 export function clearBizCache() { _businessId = null }
 
 // ── Profiles ──────────────────────────────────────────────────────────────────
+// All profile queries include an explicit business_id filter as defense-in-depth
+// on top of RLS, so a misconfigured policy can never leak cross-business data.
 export async function getEmployees() {
+  const businessId = await biz()
+  if (!businessId) return []
   const { data } = await supabase
     .from('profiles')
     .select('id, name, email, role, hourly_rate')
+    .eq('business_id', businessId)
     .eq('role', 'employee')
     .order('name')
   return data || []
 }
 
 export async function getCoOwners() {
+  const businessId = await biz()
+  if (!businessId) return []
   const { data } = await supabase
     .from('profiles')
     .select('id, name, email, role, hourly_rate')
+    .eq('business_id', businessId)
     .eq('role', 'co_owner')
     .order('name')
   return data || []
 }
 
 export async function getOwners() {
+  const businessId = await biz()
+  if (!businessId) return []
   const { data } = await supabase
     .from('profiles')
     .select('id, name, email, role, hourly_rate')
+    .eq('business_id', businessId)
     .in('role', ['owner', 'co_owner'])
     .order('name')
   return data || []
 }
 
 export async function getAllTeamMembers() {
+  const businessId = await biz()
+  if (!businessId) return []
   const { data } = await supabase
     .from('profiles')
     .select('id, name, email, role, hourly_rate')
+    .eq('business_id', businessId)
     .in('role', ['employee', 'co_owner'])
     .order('name')
   return data || []
@@ -111,14 +125,6 @@ export async function updateTeamMemberRate(userId, rate) {
     .from('profiles')
     .update({ hourly_rate: parseFloat(rate) || 0 })
     .eq('id', userId)
-}
-
-export async function removeEmployee(userId) {
-  await supabase.from('profiles').delete().eq('id', userId)
-}
-
-export async function removeCoOwner(userId) {
-  await supabase.from('profiles').delete().eq('id', userId)
 }
 
 export async function removeTeamMember(userId) {
@@ -343,7 +349,7 @@ export async function updateJob(id, updates) {
     }
     // Auto-log revenue whenever a job transitions to completed for the first time
     if (!prev?.revenue_logged) {
-      await logJobToRevenue(job)
+      try { await logJobToRevenue(job) } catch (err) { console.error('[updateJob] revenue logging failed:', err.message) }
     }
   }
 
@@ -461,27 +467,30 @@ export async function markAllNotificationsRead(userId) {
 // ── Job → Revenue logging ─────────────────────────────────────────────────────
 export async function logJobToRevenue(job) {
   if (!job.price || parseFloat(job.price) <= 0) return
-  // Atomically claim the slot: only update if revenue_logged is still false.
-  // If another caller already set it true, claimed will be empty — bail out.
+  // Use IS NOT TRUE so both NULL (column default) and false match.
+  // .eq('revenue_logged', false) misses rows where the column is NULL.
   const { data: claimed } = await supabase
     .from('jobs')
     .update({ revenue_logged: true })
     .eq('id', job.id)
-    .eq('revenue_logged', false)
+    .not('revenue_logged', 'is', true)
     .select('id')
   if (!claimed?.length) return
   const businessId = job.business_id || await biz()
-  const { error } = await supabase.from('revenue').insert({
+  const base = {
     business_id: businessId,
     client:       job.client_name,
     service_type: job.service_type,
     amount:       parseFloat(job.price),
     date:         job.date,
-    source:       'job',
-    job_id:       job.id,
-  })
+  }
+  let { error } = await supabase.from('revenue').insert({ ...base, source: 'job', job_id: job.id })
+  // Fallback: if source/job_id columns don't exist yet (migration not run), insert without them
+  if (error?.message?.includes('column')) {
+    ;({ error } = await supabase.from('revenue').insert(base))
+  }
   if (error) {
-    // Roll back the flag so the entry can be retried
+    console.error('[logJobToRevenue] insert failed:', error.message)
     await supabase.from('jobs').update({ revenue_logged: false }).eq('id', job.id)
     throw new Error(error.message)
   }
@@ -508,13 +517,13 @@ export async function autoLogTodayRevenue() {
     .select('*')
     .eq('date', today)
     .eq('status', 'completed')
-    .eq('revenue_logged', false)
+    .not('revenue_logged', 'is', true)
     .not('price', 'is', null)
     .gt('price', 0)
   if (!jobs?.length) return 0
   let logged = 0
   for (const job of jobs) {
-    try { await logJobToRevenue(job); logged++ } catch {}
+    try { await logJobToRevenue(job); logged++ } catch (err) { console.error('[autoLogTodayRevenue] job', job.id, err.message) }
   }
   return logged
 }
@@ -795,9 +804,9 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mime })
 }
 
-function withPublicUrl(photo) {
-  const { data } = supabase.storage.from('photos').getPublicUrl(photo.storage_path)
-  return { ...photo, data_url: data.publicUrl }
+async function withSignedUrl(photo) {
+  const { data } = await supabase.storage.from('photos').createSignedUrl(photo.storage_path, 3600)
+  return { ...photo, data_url: data?.signedUrl || '' }
 }
 
 export async function addPhoto({ job_id = null, user_id, caption = '', label = 'general', data_url }) {
@@ -814,7 +823,7 @@ export async function addPhoto({ job_id = null, user_id, caption = '', label = '
     .select()
     .single()
   if (error) throw new Error(error.message)
-  return withPublicUrl(data)
+  return withSignedUrl(data)
 }
 
 export async function getAllPhotos() {
@@ -822,7 +831,7 @@ export async function getAllPhotos() {
     .from('photos')
     .select('*')
     .order('created_at', { ascending: false })
-  return (data || []).map(withPublicUrl)
+  return Promise.all((data || []).map(withSignedUrl))
 }
 
 export async function getPhotosByJob(jobId) {
@@ -831,7 +840,7 @@ export async function getPhotosByJob(jobId) {
     .select('*')
     .eq('job_id', jobId)
     .order('created_at', { ascending: false })
-  return (data || []).map(withPublicUrl)
+  return Promise.all((data || []).map(withSignedUrl))
 }
 
 export async function getPhotosByUser(userId) {
@@ -840,7 +849,7 @@ export async function getPhotosByUser(userId) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-  return (data || []).map(withPublicUrl)
+  return Promise.all((data || []).map(withSignedUrl))
 }
 
 export async function deletePhoto(id) {
@@ -852,17 +861,46 @@ export async function deletePhoto(id) {
 }
 
 // ── Business settings ─────────────────────────────────────────────────────────
+
+// Fetches only the invite_code for a known businessId. Used by the Crew page so
+// it can pass user.business_id from AuthContext directly, bypassing the biz()
+// cache which reads profiles.business_id and can return null when the auth
+// context has resolved the ID via the user_businesses fallback instead.
+export async function getInviteCode(businessId) {
+  if (!businessId) return ''
+  const { data } = await supabase
+    .from('businesses')
+    .select('invite_code')
+    .eq('id', businessId)
+    .single()
+  return data?.invite_code || ''
+}
+
 export async function getBusinessSettings() {
   const businessId = await biz()
-  if (!businessId) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT' }
+  if (!businessId) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT', venmo_username: '' }
   const { data } = await supabase.from('businesses').select('*').eq('id', businessId).single()
-  return data || { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT' }
+  if (!data) return { name: '', logo: '', address: '', phone: '', service_radius: 25, invite_code: '', state: 'VT', venmo_username: '' }
+
+  // Self-heal: invite_code can be null on rows created before the column had a
+  // working DEFAULT (e.g. the column was added after initial schema deployment,
+  // or pgcrypto's gen_random_bytes wasn't in the search path at INSERT time).
+  // Generate a code now and persist it so subsequent loads always find it.
+  if (!data.invite_code) {
+    const bytes = crypto.getRandomValues(new Uint8Array(3))
+    const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+    await supabase.from('businesses').update({ invite_code: code }).eq('id', businessId)
+    return { ...data, invite_code: code }
+  }
+
+  return data
 }
 
 export async function saveBusinessSettings(updates) {
   const businessId = await biz()
-  const { name, logo, address, phone, service_radius, state } = updates
-  await supabase.from('businesses').update({ name, logo, address, phone, service_radius, state }).eq('id', businessId)
+  const { name, logo, address, phone, service_radius, state, venmo_username } = updates
+  const { error } = await supabase.from('businesses').update({ name, logo, address, phone, service_radius, state, venmo_username }).eq('id', businessId)
+  if (error) throw new Error(error.message)
 }
 
 // ── Payroll settings ──────────────────────────────────────────────────────────

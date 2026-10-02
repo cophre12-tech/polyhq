@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext.jsx'
 
-const ADMIN_EMAIL = 'cophre12@gmail.com'
+const ADMIN_EMAILS = new Set(['cophre12@gmail.com', 'caribera@icloud.com'])
 
 const PLAN_FEATURES = {
   // Pro+ features
@@ -11,7 +11,6 @@ const PLAN_FEATURES = {
   accounting:          ['pro', 'business'],
   // Business-only features
   payroll_advanced:    ['business'],
-  personal_financials: ['business'],
   tax_forms:           ['business'],
 }
 
@@ -28,7 +27,7 @@ export const PLAN_META = {
     priceLabel: 'Free',
     employeeLimit: 3,
     color: 'slate',
-    features: ['Clock in/out', 'Basic payroll', 'Expense tracking', 'Up to 3 employees'],
+    features: ['Clock in/out', 'Basic payroll', 'Expense tracking', 'Personal financials', 'Up to 3 employees'],
   },
   pro: {
     name: 'Pro',
@@ -44,13 +43,13 @@ export const PLAN_META = {
     priceLabel: '$29/mo',
     employeeLimit: Infinity,
     color: 'violet',
-    features: ['Everything in Pro', 'Payroll tax details & EFTPS', 'Personal financials', 'Tax forms (Sched C, 1065, 1120-S)', 'Unlimited employees'],
+    features: ['Everything in Pro', 'Payroll tax details & EFTPS', 'Tax forms (Sched C, 1065, 1120-S)', 'Unlimited employees'],
   },
 }
 
 export function useSubscription() {
   const { user, plan } = useAuth()
-  const isAdmin = user?.email === ADMIN_EMAIL
+  const isAdmin = ADMIN_EMAILS.has(user?.email)
   const effectivePlan = isAdmin ? 'business' : (plan || 'free')
 
   function canUse(feature) {

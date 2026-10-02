@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getInvoiceById, updateInvoice, deleteInvoice } from '../lib/db.js'
+import { getInvoiceById, updateInvoice, deleteInvoice, getBusinessSettings } from '../lib/db.js'
 import { formatCurrency } from '../lib/payroll.js'
+import { supabase } from '../lib/supabase.js'
+import { generateInvoicePdf } from '../lib/invoicePdf.js'
+
+const SEND_INVOICE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invoice`
 
 const STATUS_META = {
   draft:   { label: 'Draft',   color: 'bg-slate-600/40 text-slate-300', next: 'sent'  },
@@ -21,7 +25,10 @@ export default function InvoiceViewPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [invoice, setInvoice] = useState(null)
+  const [bizSettings, setBizSettings] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [emailState, setEmailState] = useState(null)  // null | 'sending' | 'sent' | 'error'
+  const [emailError, setEmailError] = useState('')
 
   async function load() {
     const inv = await getInvoiceById(id)
@@ -29,6 +36,7 @@ export default function InvoiceViewPage() {
     setInvoice(inv)
   }
   useEffect(() => { load() }, [id])
+  useEffect(() => { getBusinessSettings().then(s => s && setBizSettings(s)) }, [])
 
   if (!invoice) return null
 
@@ -45,33 +53,133 @@ export default function InvoiceViewPage() {
   }
 
   async function sendEmail() {
-    const subject = encodeURIComponent(`Invoice ${invoice.number} from PolyHQ`)
-    const lineList = (invoice.line_items || [])
-      .map(it => `  • ${it.description}: ${it.quantity} × $${Number(it.unit_price).toFixed(2)} = $${(it.quantity * it.unit_price).toFixed(2)}`)
-      .join('\n')
-    const body = encodeURIComponent(
-`Dear ${invoice.client_name},
+    if (emailState === 'sending') return
+    setEmailState('sending')
+    setEmailError('')
 
-Please find your invoice details below.
+    try {
+      // Generate PDF client-side with business branding
+      const pdfBase64 = await generateInvoicePdf(invoice, bizSettings)
 
-Invoice: ${invoice.number}
-Date: ${fmtDate(invoice.service_date)}
-Due: ${fmtDate(invoice.due_date)}
+      // Build HTML email body (summary — the PDF is the professional deliverable)
+      const lineRows = (invoice.line_items || []).map(it => `
+        <tr>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#334155">${escHtml(it.description)}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#64748b;text-align:right">${it.quantity}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;color:#64748b;text-align:right">$${Number(it.unit_price).toFixed(2)}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;font-size:14px;font-weight:600;color:#1e293b;text-align:right">$${(it.quantity * it.unit_price).toFixed(2)}</td>
+        </tr>`).join('')
 
-${lineList}
+      const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:620px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+    <div style="background:#1e293b;padding:32px 40px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px">
+        ${escHtml(bizSettings.name || 'PolyHQ')}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em">Invoice</div>
+        <div style="font-size:18px;font-weight:700;color:#ffffff">${escHtml(invoice.number)}</div>
+      </div>
+    </div>
 
-Total: ${formatCurrency(invoice.total || subtotal)}
+    <div style="padding:32px 40px">
+      <p style="margin:0 0 24px;font-size:15px;color:#475569">Dear ${escHtml(invoice.client_name)},</p>
+      <p style="margin:0 0 24px;font-size:15px;color:#475569">
+        Please find your invoice attached to this email. The PDF contains the full invoice details.
+      </p>
 
-${invoice.notes ? `\nNotes: ${invoice.notes}\n` : ''}
-To pay or if you have questions, please reply to this email.
+      <div style="background:#f8fafc;border-radius:8px;padding:20px;margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:13px;color:#94a3b8">Invoice Date</span>
+          <span style="font-size:13px;font-weight:600;color:#1e293b">${fmtDate(invoice.service_date)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:13px;color:#94a3b8">Payment Due</span>
+          <span style="font-size:13px;font-weight:600;color:#1e293b">${fmtDate(invoice.due_date)}</span>
+        </div>
+      </div>
 
-Thank you for your business!
-PolyHQ`
-    )
-    window.location.href = `mailto:${invoice.client_email || ''}?subject=${subject}&body=${body}`
-    if (invoice.status === 'draft') {
-      await updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
-      load()
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;border-bottom:2px solid #e2e8f0">Description</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;border-bottom:2px solid #e2e8f0">Qty</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;border-bottom:2px solid #e2e8f0">Price</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;border-bottom:2px solid #e2e8f0">Total</th>
+          </tr>
+        </thead>
+        <tbody>${lineRows}</tbody>
+      </table>
+
+      <div style="text-align:right;border-top:2px solid #1e293b;padding-top:16px;margin-bottom:32px">
+        <span style="font-size:14px;color:#64748b">Total Due&nbsp;&nbsp;</span>
+        <span style="font-size:22px;font-weight:800;color:#1e293b">${formatCurrency(invoice.total || subtotal)}</span>
+      </div>
+
+      ${invoice.notes ? `<div style="background:#f8fafc;border-radius:8px;padding:16px 20px;margin-bottom:24px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;margin-bottom:8px">Notes</div>
+        <p style="margin:0;font-size:14px;color:#475569;line-height:1.6">${escHtml(invoice.notes)}</p>
+      </div>` : ''}
+
+      ${bizSettings.venmo_username ? (() => {
+        const amount = (invoice.total || subtotal).toFixed(2)
+        const note = encodeURIComponent(`Invoice ${invoice.number || ''}`)
+        const venmoUrl = `https://venmo.com/u/${bizSettings.venmo_username}?txn=pay&amount=${amount}&note=${note}`
+        return `<a href="${venmoUrl}" target="_blank" rel="noopener" style="display:block;text-decoration:none;background:#e8f4fc;border:1.5px solid #3D95CE;border-radius:10px;padding:20px 24px;margin-bottom:24px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#3D95CE;margin-bottom:8px">Pay via Venmo</div>
+          <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:4px">@${bizSettings.venmo_username}</div>
+          <div style="font-size:13px;color:#3D95CE">Amount: ${formatCurrency(invoice.total || subtotal)} &nbsp;·&nbsp; Note: Invoice ${escHtml(invoice.number || '')}</div>
+        </a>`
+      })() : ''}
+
+      <p style="margin:0;font-size:14px;color:#94a3b8">
+        Questions? Reply to this email and we'll be happy to help.
+      </p>
+    </div>
+
+    <div style="border-top:1px solid #f1f5f9;padding:20px 40px;display:flex;justify-content:space-between">
+      <span style="font-size:12px;color:#cbd5e1">Sent via PolyHQ</span>
+      <span style="font-size:12px;color:#cbd5e1">Thank you for your business!</span>
+    </div>
+  </div>
+</body>
+</html>`
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(SEND_INVOICE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          to: invoice.client_email,
+          from_name: bizSettings.name || '',
+          invoice_number: invoice.number,
+          subject: `Invoice ${invoice.number} from ${bizSettings.name || 'PolyHQ'}`,
+          html,
+          pdf_base64: pdfBase64,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to send email')
+
+      // Mark invoice as sent if it was a draft
+      if (invoice.status === 'draft') {
+        await updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
+        load()
+      }
+
+      setEmailState('sent')
+      setTimeout(() => setEmailState(null), 4000)
+    } catch (err) {
+      setEmailError(err.message)
+      setEmailState('error')
     }
   }
 
@@ -223,14 +331,50 @@ ${invoice.notes ? `<div class="notes"><label>Notes</label><p>${escHtml(invoice.n
             <span className="sm:hidden">PDF</span>
           </button>
           {invoice.client_email && (
-            <button onClick={sendEmail} className="px-3 sm:px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-              <span className="hidden sm:inline">Send Email</span>
-              <span className="sm:hidden">Email</span>
+            <button
+              onClick={sendEmail}
+              disabled={emailState === 'sending'}
+              className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+                emailState === 'sent'
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30'
+                  : 'text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed'
+              }`}
+            >
+              {emailState === 'sending' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="hidden sm:inline">Sending…</span>
+                </>
+              ) : emailState === 'sent' ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <span className="hidden sm:inline">Sent!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <span className="hidden sm:inline">Send Email</span>
+                  <span className="sm:hidden">Email</span>
+                </>
+              )}
             </button>
           )}
         </div>
       </div>
+
+      {/* Email error banner */}
+      {emailState === 'error' && (
+        <div className="mb-5 flex items-start gap-3 bg-rose-500/10 border border-rose-500/25 rounded-xl px-4 py-3">
+          <svg className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div>
+            <p className="text-sm font-medium text-rose-300">Failed to send email</p>
+            <p className="text-xs text-slate-400 mt-0.5">{emailError}</p>
+          </div>
+          <button onClick={() => setEmailState(null)} className="ml-auto text-slate-500 hover:text-slate-300 transition-colors shrink-0">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      )}
 
       {/* Status actions */}
       {meta.next && (

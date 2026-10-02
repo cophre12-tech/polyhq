@@ -22,7 +22,7 @@ const OWNER_MORE_LINKS = [
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon,  feature: 'accounting' },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon, feature: 'invoicing' },
   { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon,     feature: 'tax_forms' },
-  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon,  feature: 'personal_financials' },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
   { to: '/owner/settings',   label: 'Settings',   icon: GearIcon },
 ]
 
@@ -41,14 +41,14 @@ const OWNER_FINANCE_LINKS = [
   { to: '/owner/accounting', label: 'Accounting', icon: LedgerIcon,  feature: 'accounting' },
   { to: '/owner/invoices',   label: 'Invoices',   icon: InvoiceIcon, feature: 'invoicing' },
   { to: '/owner/tax-forms',  label: 'Tax Forms',  icon: TaxIcon,     feature: 'tax_forms' },
-  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon,  feature: 'personal_financials' },
+  { to: '/owner/personal',   label: 'Personal',   icon: WalletIcon },
 ]
 
 const EMPLOYEE_LINKS = [
   { to: '/employee',           label: 'My Hours',    icon: ClockIcon },
   { to: '/employee/schedule',  label: 'My Schedule', icon: CalendarIcon,  feature: 'scheduling' },
   { to: '/employee/comms',     label: 'Chat',        icon: ChatIcon,      feature: 'comms' },
-  { to: '/employee/personal',  label: 'Personal',    icon: WalletIcon,    feature: 'personal_financials' },
+  { to: '/employee/personal',  label: 'Personal',    icon: WalletIcon },
   { to: '/employee/settings',  label: 'Settings',    icon: GearIcon },
 ]
 

@@ -16,11 +16,9 @@ export async function requestAndSubscribe(userId, businessId) {
   const steps = []
 
   function pass(label, detail) {
-    console.log(`[push] ✓ ${label}: ${detail}`)
     steps.push({ label, ok: true, detail })
   }
   function fail(label, detail) {
-    console.error(`[push] ✗ ${label}: ${detail}`)
     steps.push({ label, ok: false, detail })
     return steps
   }
@@ -89,23 +87,15 @@ export async function requestAndSubscribe(userId, businessId) {
 
 // Send a web push to all owners/co-owners of a business.
 export function notifyOwners(businessId, { title, body, url = '/' }) {
-  console.log('[push] notifyOwners called', { businessId, title, body, url })
   supabase.functions.invoke('send-push', {
     body: { roles: ['owner', 'co_owner'], business_id: businessId, title, body, url },
-  }).then(({ data, error }) => {
-    if (error) console.error('[push] notifyOwners edge function error:', error)
-    else console.log('[push] notifyOwners result:', data)
-  }).catch(err => console.error('[push] notifyOwners invoke failed:', err))
+  }).catch(() => {})
 }
 
 // Send a web push to specific users by their IDs.
 export function notifyUsers(userIds, { title, body, url = '/' }) {
   if (!userIds?.length) return
-  console.log('[push] notifyUsers called', { userIds, title, body, url })
   supabase.functions.invoke('send-push', {
     body: { user_ids: userIds, title, body, url },
-  }).then(({ data, error }) => {
-    if (error) console.error('[push] notifyUsers edge function error:', error)
-    else console.log('[push] notifyUsers result:', data)
-  }).catch(err => console.error('[push] notifyUsers invoke failed:', err))
+  }).catch(() => {})
 }

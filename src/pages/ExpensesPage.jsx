@@ -55,13 +55,13 @@ export default function ExpensesPage() {
     .filter(c => c.count > 0)
 
   return (
-    <div className="p-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Expenses</h1>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Expenses</h1>
         <p className="text-slate-400 mt-1 text-sm">Log and track business expenses by category</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left column: form + breakdown */}
         <div className="space-y-4">
           <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
@@ -145,7 +145,7 @@ export default function ExpensesPage() {
         </div>
 
         {/* Right column: expense list */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
               <h3 className="font-semibold text-white">All Expenses</h3>
@@ -178,7 +178,7 @@ export default function ExpensesPage() {
                       </span>
                       <button
                         onClick={() => handleDelete(exp.id)}
-                        className="text-slate-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-lg leading-none"
+                        className="text-slate-600 hover:text-rose-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-lg leading-none"
                         title="Delete expense"
                       >
                         ×

@@ -1,0 +1,7 @@
+project_id = "nrzngxbmshyuijkwjvbs"
+
+# stripe-webhook must be publicly reachable by Stripe — no JWT is sent by
+# Stripe's servers. Authentication is handled instead by verifying the
+# Stripe-Signature header against STRIPE_WEBHOOK_SECRET inside the function.
+[functions.stripe-webhook]
+verify_jwt = false

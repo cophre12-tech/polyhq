@@ -94,7 +94,11 @@ export default function TaxFormsPage() {
 
   function pickStructure(id) {
     setStructure(id)
-    localStorage.setItem('polyhq_tax_structure', id)
+    if (id) {
+      localStorage.setItem('polyhq_tax_structure', id)
+    } else {
+      localStorage.removeItem('polyhq_tax_structure')
+    }
   }
 
   function handlePrint() {

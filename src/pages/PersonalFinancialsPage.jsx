@@ -232,6 +232,7 @@ function OwnerIncomeSection({ user }) {
   const [showForm, setShowForm]   = useState(false)
   const [form, setForm]           = useState({ amount: '', date: todayStr(), notes: '' })
   const [saving, setSaving]       = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const [periodIdx, setPeriodIdx] = useState(2) // default: This Month
   const [confirmDel, setConfirmDel] = useState(null)
 
@@ -262,11 +263,14 @@ function OwnerIncomeSection({ user }) {
     ev.preventDefault()
     if (!form.amount || !form.date) return
     setSaving(true)
+    setSaveError(null)
     try {
       const entry = await addPersonalIncome({ userId: user.id, ...form })
       setEntries(prev => [entry, ...prev].sort((a, b) => b.date.localeCompare(a.date)))
       setForm({ amount: '', date: todayStr(), notes: '' })
       setShowForm(false)
+    } catch (err) {
+      setSaveError(err.message)
     } finally {
       setSaving(false)
     }
@@ -304,12 +308,15 @@ function OwnerIncomeSection({ user }) {
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="e.g. Week of Jan 6" className="input" />
           </div>
+          {saveError && (
+            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{saveError}</p>
+          )}
           <div className="flex gap-2">
             <button type="submit" disabled={saving}
               className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-5 py-2 text-sm transition-colors">
               {saving ? 'Saving…' : 'Save Entry'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)}
+            <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
               className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors">
               Cancel
             </button>
@@ -393,6 +400,7 @@ function ExpensesSection({ userId }) {
   const [showForm, setShowForm]   = useState(false)
   const [form, setForm]           = useState({ description: '', amount: '', category: 'Housing', date: todayStr(), recurring: false, frequency: 'monthly' })
   const [saving, setSaving]       = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const [catFilter, setCatFilter] = useState('all')
   const [confirmDel, setConfirmDel] = useState(null)
 
@@ -427,11 +435,14 @@ function ExpensesSection({ userId }) {
     ev.preventDefault()
     if (!form.description.trim() || !form.amount) return
     setSaving(true)
+    setSaveError(null)
     try {
       const entry = await addPersonalExpense({ userId, ...form })
       setExpenses(prev => [entry, ...prev])
       setForm({ description: '', amount: '', category: 'Housing', date: todayStr(), recurring: false, frequency: 'monthly' })
       setShowForm(false)
+    } catch (err) {
+      setSaveError(err.message)
     } finally {
       setSaving(false)
     }
@@ -511,12 +522,15 @@ function ExpensesSection({ userId }) {
               </select>
             )}
           </div>
+          {saveError && (
+            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{saveError}</p>
+          )}
           <div className="flex gap-2">
             <button type="submit" disabled={saving}
               className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-5 py-2 text-sm transition-colors">
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)}
+            <button type="button" onClick={() => { setShowForm(false); setSaveError(null) }}
               className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors">
               Cancel
             </button>

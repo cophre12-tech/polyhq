@@ -9,6 +9,7 @@ import {
   getServices,
 } from '../lib/db.js'
 import { formatCurrency } from '../lib/payroll.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 
 const EXPENSE_CATEGORIES = ['Equipment', 'Supplies', 'Travel', 'Labor', 'Other']
@@ -496,6 +497,7 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
 // ── Expenses ──────────────────────────────────────────────────────────────────
 
 function ExpensesTab({ expenses, onUpdate }) {
+  const { user } = useAuth()
   const [form, setForm] = useState({ date: TODAY, category: 'Supplies', description: '', amount: '' })
   const [error, setError] = useState('')
 
@@ -505,7 +507,7 @@ function ExpensesTab({ expenses, onUpdate }) {
     e.preventDefault()
     if (!form.amount || parseFloat(form.amount) <= 0) { setError('Enter a valid amount'); return }
     setError('')
-    await addExpense({ ...form, amount: parseFloat(form.amount), user_id: 'owner' })
+    await addExpense({ ...form, amount: parseFloat(form.amount), user_id: user.id })
     setForm(p => ({ ...p, description: '', amount: '' }))
     onUpdate()
   }

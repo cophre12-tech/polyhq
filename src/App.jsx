@@ -25,6 +25,19 @@ import ActiveJobsPage from './pages/ActiveJobsPage.jsx'
 import PersonalFinancialsPage from './pages/PersonalFinancialsPage.jsx'
 import TaxFormsPage from './pages/TaxFormsPage.jsx'
 import ExpensesPage from './pages/ExpensesPage.jsx'
+import AdminPage from './pages/AdminPage.jsx'
+
+const ADMIN_EMAIL = 'cophre12@gmail.com'
+
+// Standalone guard — no Layout wrapper, silent redirect for non-admins
+function AdminGuard({ children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (user.email !== ADMIN_EMAIL) {
+    return <Navigate to={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'} replace />
+  }
+  return children
+}
 
 function AuthLayout() {
   const { user } = useAuth()
@@ -46,6 +59,8 @@ function RoleGuard({ role, children }) {
 
 function SubscriptionGuard({ feature, children }) {
   const { canUse } = useSubscription()
+  const { loading } = useAuth()
+  if (loading) return null
   if (!canUse(feature)) return <FeatureGate feature={feature} />
   return children
 }
@@ -59,6 +74,7 @@ function Root() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/terms" element={<TermsPage />} />
@@ -81,9 +97,9 @@ export default function App() {
         <Route path="/employee/comms" element={<RoleGuard role="employee"><SubscriptionGuard feature="comms"><EmployeeCommsPage /></SubscriptionGuard></RoleGuard>} />
         <Route path="/owner/settings" element={<RoleGuard role="owner"><SettingsPage /></RoleGuard>} />
         <Route path="/employee/settings" element={<RoleGuard role="employee"><EmployeeSettingsPage /></RoleGuard>} />
-        <Route path="/owner/personal" element={<RoleGuard role="owner"><SubscriptionGuard feature="personal_financials"><PersonalFinancialsPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/owner/personal" element={<RoleGuard role="owner"><PersonalFinancialsPage /></RoleGuard>} />
         <Route path="/owner/tax-forms" element={<RoleGuard role="owner"><SubscriptionGuard feature="tax_forms"><TaxFormsPage /></SubscriptionGuard></RoleGuard>} />
-        <Route path="/employee/personal" element={<RoleGuard role="employee"><SubscriptionGuard feature="personal_financials"><PersonalFinancialsPage /></SubscriptionGuard></RoleGuard>} />
+        <Route path="/employee/personal" element={<RoleGuard role="employee"><PersonalFinancialsPage /></RoleGuard>} />
         <Route path="/employee" element={<RoleGuard role="employee"><EmployeeDashboard /></RoleGuard>} />
       </Route>
     </Routes>

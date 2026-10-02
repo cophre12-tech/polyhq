@@ -9,8 +9,15 @@ import {
   getAllTeamMembers, inviteTeamMember, updateTeamMemberRole,
   updateTeamMemberRate, removeTeamMember,
 } from '../lib/db.js'
+import { supabase } from '../lib/supabase.js'
 import { compressImage } from '../lib/compress.js'
 import PushDiagnosticPanel from '../components/PushDiagnosticPanel.jsx'
+
+const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
+const PRICE_IDS = {
+  pro: 'price_1TwmG51LS16ktisRhdXzrZox',
+  business: 'price_1TwmLw1LS16ktisRmbfkvZTn',
+}
 
 const TABS = [
   { id: 'business',      label: 'Business' },
@@ -59,7 +66,7 @@ export default function SettingsPage() {
 }
 
 /* ── Business Settings ────────────────────────────────────────────────────── */
-const DEFAULT_BIZ = { name: '', phone: '', address: '', service_radius: '', logo: '', invite_code: '', state: 'VT' }
+const DEFAULT_BIZ = { name: '', phone: '', address: '', service_radius: '', logo: '', invite_code: '', state: 'VT', venmo_username: '' }
 
 const SUPPORTED_STATES = [
   { code: 'CA', name: 'California' },
@@ -76,6 +83,7 @@ function BusinessTab() {
   const { user } = useAuth()
   const [form, setForm]       = useState(DEFAULT_BIZ)
   const [saved, setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [uploading, setUploading] = useState(false)
   const logoRef = useRef(null)
 
@@ -97,9 +105,14 @@ function BusinessTab() {
 
   async function handleSave(e) {
     e.preventDefault()
-    await saveBusinessSettings(form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    setSaveError('')
+    try {
+      await saveBusinessSettings(form)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setSaveError(err.message)
+    }
   }
 
   return (
@@ -177,6 +190,20 @@ function BusinessTab() {
             </select>
             <p className="text-xs text-slate-500 mt-1">Used for state income tax withholding in payroll</p>
           </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Venmo Username</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm select-none">@</span>
+              <input
+                type="text"
+                value={form.venmo_username || ''}
+                onChange={e => set('venmo_username', e.target.value.replace(/^@/, '').replace(/\s/g, ''))}
+                placeholder="yourusername"
+                className="input pl-7"
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-1">When set, invoices will include a Venmo payment link for clients</p>
+          </div>
         </div>
       </div>
 
@@ -186,6 +213,7 @@ function BusinessTab() {
           Save Business Settings
         </button>
         {saved && <span className="text-emerald-400 text-sm">Saved!</span>}
+        {saveError && <span className="text-rose-400 text-sm">{saveError}</span>}
       </div>
 
       <PushDiagnosticPanel />
@@ -525,11 +553,76 @@ function TeamTab({ user: currentUser }) {
 
 
 function SubscriptionTab() {
+  const { user, refreshPlan } = useAuth()
   const { plan, isAdmin } = useSubscription()
-  const [showComingSoon, setShowComingSoon] = useState(null)
+  const location = useLocation()
+  const [loadingAction, setLoadingAction] = useState(null) // planKey or 'portal'
+  const [checkoutError, setCheckoutError] = useState(null)
+  const [paid, setPaid] = useState(false)
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('paid') === '1') {
+      setPaid(true)
+      // Give the webhook ~4 s to process before refreshing the plan in context
+      const t = setTimeout(() => refreshPlan(), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
+  async function callCheckout(body) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(STRIPE_CHECKOUT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok || !data.url) throw new Error(data.error || 'Something went wrong. Please try again.')
+    return data.url
+  }
+
+  async function handleUpgrade(planKey) {
+    setLoadingAction(planKey)
+    setCheckoutError(null)
+    try {
+      const url = await callCheckout({ price_id: PRICE_IDS[planKey], business_id: user.business_id })
+      window.location.href = url
+    } catch (err) {
+      setCheckoutError(err.message)
+      setLoadingAction(null)
+    }
+  }
+
+  async function handlePortal() {
+    setLoadingAction('portal')
+    setCheckoutError(null)
+    try {
+      const url = await callCheckout({ action: 'portal', business_id: user.business_id })
+      window.location.href = url
+    } catch (err) {
+      setCheckoutError(err.message)
+      setLoadingAction(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
+      {paid && (
+        <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-3 flex items-center gap-3">
+          <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          <p className="text-sm text-emerald-300 font-medium">Payment successful! Your plan will activate in a moment.</p>
+        </div>
+      )}
+
+      {checkoutError && (
+        <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl px-4 py-3">
+          <p className="text-sm text-rose-300">{checkoutError}</p>
+        </div>
+      )}
+
       {isAdmin && (
         <div className="bg-violet-500/10 border border-violet-500/25 rounded-xl px-4 py-3 flex items-center gap-3">
           <svg className="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -542,6 +635,7 @@ function SubscriptionTab() {
           const meta = PLAN_META[planKey]
           const isCurrent = plan === planKey
           const isUpgrade = ['free','pro','business'].indexOf(planKey) > ['free','pro','business'].indexOf(plan)
+          const isLoading = loadingAction === planKey
 
           return (
             <div key={planKey}
@@ -573,19 +667,13 @@ function SubscriptionTab() {
               </ul>
 
               {isUpgrade && !isAdmin ? (
-                showComingSoon === planKey ? (
-                  <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center">
-                    <p className="text-sm font-semibold text-white mb-0.5">Coming Soon!</p>
-                    <p className="text-xs text-slate-400">Email <span className="text-indigo-400">support@polyhq.app</span> to upgrade early.</p>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowComingSoon(planKey)}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
-                  >
-                    Upgrade to {meta.name}
-                  </button>
-                )
+                <button
+                  onClick={() => handleUpgrade(planKey)}
+                  disabled={!!loadingAction}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
+                >
+                  {isLoading ? 'Redirecting to Stripe…' : `Upgrade to ${meta.name}`}
+                </button>
               ) : (
                 <div className={`w-full rounded-xl py-2.5 text-sm font-semibold text-center ${
                   isCurrent
@@ -599,6 +687,22 @@ function SubscriptionTab() {
           )
         })}
       </div>
+
+      {plan !== 'free' && !isAdmin && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-white">Manage Subscription</p>
+            <p className="text-xs text-slate-400 mt-0.5">Cancel, change your plan, or update billing info via the Stripe portal.</p>
+          </div>
+          <button
+            onClick={handlePortal}
+            disabled={!!loadingAction}
+            className="shrink-0 text-sm font-medium text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-colors"
+          >
+            {loadingAction === 'portal' ? 'Opening…' : 'Manage Billing'}
+          </button>
+        </div>
+      )}
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 flex items-start gap-3">
         <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

@@ -134,7 +134,7 @@ export default function SchedulePage() {
   }
 
   async function handleLogRevenue(job) {
-    await logJobToRevenue(job)
+    await logJobToRevenue(job)   // throws on failure — caught and displayed by modal
     setModal(null); load()
   }
 
@@ -520,7 +520,14 @@ function JobModal({ type, job, defaultDate, employees, onSave, onDelete, onLogRe
 
   async function handleLogRevenue() {
     setLogging(true)
-    try { await onLogRevenue(job) } finally { setLogging(false) }
+    setSaveError('')
+    try {
+      await onLogRevenue(job)
+    } catch (err) {
+      setSaveError('Revenue logging failed: ' + err.message)
+    } finally {
+      setLogging(false)
+    }
   }
 
   useEffect(() => {

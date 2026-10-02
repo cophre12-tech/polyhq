@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useSubscription } from '../hooks/useSubscription.js'
+import { supabase } from '../lib/supabase.js'
 import {
   getAllTeamMembers, updateTeamMemberRole, updateTeamMemberRate,
-  removeTeamMember, getBusinessSettings,
+  removeTeamMember,
 } from '../lib/db.js'
 
 export default function CrewPage() {
@@ -13,18 +14,24 @@ export default function CrewPage() {
   const navigate = useNavigate()
   const isPrimaryOwner = user?.role === 'owner'
 
-  const [members, setMembers]       = useState([])
-  const [inviteCode, setInviteCode] = useState('')
+  const [members, setMembers]         = useState([])
+  const [inviteCode, setInviteCode]   = useState('')
   const [editingRate, setEditingRate] = useState(null)
-  const [confirm, setConfirm]       = useState(null)
-  const [copied, setCopied]         = useState(false)
+  const [confirm, setConfirm]         = useState(null)
+  const [copied, setCopied]           = useState(false)
+  const [loading, setLoading]         = useState(true)
 
   async function load() {
-    const [all, biz] = await Promise.all([getAllTeamMembers(), getBusinessSettings()])
-    setMembers(all)
-    setInviteCode(biz.invite_code || '')
+    const [membersResult, codeResult] = await Promise.all([
+      getAllTeamMembers(),
+      supabase.from('businesses').select('invite_code').eq('id', user.business_id).single(),
+    ])
+    console.log('[Crew] invite code result:', codeResult.data, codeResult.error)
+    setMembers(membersResult)
+    setInviteCode(codeResult.data?.invite_code || '')
+    setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (user?.business_id) load() }, [user?.business_id])
 
   async function commitRate(memberId) {
     const rate = parseFloat(editingRate.value)
@@ -54,6 +61,20 @@ export default function CrewPage() {
   const employees = members.filter(m => m.role === 'employee')
   const atLimit = !isAdmin && isFinite(employeeLimit) && employees.length >= employeeLimit
   const nearLimit = !isAdmin && isFinite(employeeLimit) && employees.length >= employeeLimit - 1 && !atLimit
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Crew</h1>
+          <p className="text-slate-400 mt-1 text-sm">Manage your team — employees and co-owners</p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
