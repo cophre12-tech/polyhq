@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Login() {
@@ -9,6 +9,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Where a guard sent us from (e.g. /admin). Only accept in-app paths.
+  const from = location.state?.from
+  const returnTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : null
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -20,7 +24,7 @@ export default function Login() {
         navigate('/signup', { state: { email } })
         return
       }
-      navigate(['owner', 'co_owner'].includes(user.role) ? '/owner' : '/employee')
+      navigate(returnTo || (['owner', 'co_owner'].includes(user.role) ? '/owner' : '/employee'), { replace: !!returnTo })
     } catch (err) {
       setError(err.message)
     } finally {

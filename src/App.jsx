@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import { useSubscription } from './hooks/useSubscription.js'
 import FeatureGate from './components/FeatureGate.jsx'
@@ -29,12 +29,38 @@ import AdminPage from './pages/AdminPage.jsx'
 
 const ADMIN_EMAIL = 'cophre12@gmail.com'
 
-// Standalone guard — no Layout wrapper, silent redirect for non-admins
+// Standalone guard — no Layout wrapper. Signed-out visitors go to login and
+// come back here afterwards; a non-admin account gets an explicit message
+// instead of a silent redirect (which looks like the page is broken).
 function AdminGuard({ children }) {
-  const { user } = useAuth()
-  if (!user) return <Navigate to="/login" replace />
+  const { user, logout } = useAuth()
+  const location = useLocation()
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (user.email !== ADMIN_EMAIL) {
-    return <Navigate to={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'} replace />
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-xl p-6 text-center">
+          <h1 className="text-lg font-semibold text-white mb-2">Admin access required</h1>
+          <p className="text-sm text-slate-400 mb-6">
+            You're signed in as <span className="text-slate-200">{user.email}</span>, which isn't an admin account.
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={logout}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
+            >
+              Sign out and switch account
+            </button>
+            <a
+              href={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'}
+              className="text-sm text-slate-400 hover:text-slate-200 py-2"
+            >
+              Back to dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    )
   }
   return children
 }
