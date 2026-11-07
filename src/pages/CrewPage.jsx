@@ -66,11 +66,11 @@ export default function CrewPage() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Crew</h1>
-          <p className="text-slate-400 mt-1 text-sm">Manage your team — employees and co-owners</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-fg">Crew</h1>
+          <p className="text-fg-muted mt-1 text-sm">Manage your team — employees and co-owners</p>
         </div>
         <div className="flex items-center justify-center py-20">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
         </div>
       </div>
     )
@@ -80,16 +80,16 @@ export default function CrewPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Crew</h1>
-          <p className="text-slate-400 mt-1 text-sm">Manage your team — employees and co-owners</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-fg">Crew</h1>
+          <p className="text-fg-muted mt-1 text-sm">Manage your team — employees and co-owners</p>
         </div>
         {!isAdmin && isFinite(employeeLimit) && (
           <div className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border ${
             atLimit
-              ? 'text-rose-400 bg-rose-500/10 border-rose-500/25'
+              ? 'text-danger bg-danger/10 border-danger/25'
               : nearLimit
-              ? 'text-amber-400 bg-amber-500/10 border-amber-500/25'
-              : 'text-slate-400 bg-slate-800 border-slate-700'
+              ? 'text-warning bg-warning/10 border-warning/25'
+              : 'text-fg-muted bg-raised border-line'
           }`}>
             <span>{employees.length} / {employeeLimit} employees</span>
             {atLimit && <span>· At limit</span>}
@@ -99,17 +99,17 @@ export default function CrewPage() {
 
       {/* Employee limit upgrade prompt */}
       {atLimit && (
-        <div className="mb-6 bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 bg-danger/5 border border-danger/20 rounded-xl px-4 py-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-white">Employee limit reached</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              You&apos;re on the <span className="capitalize font-medium text-slate-300">{plan}</span> plan ({employeeLimit} employee{employeeLimit !== 1 ? 's' : ''} max).
+            <p className="text-sm font-semibold text-fg">Employee limit reached</p>
+            <p className="text-xs text-fg-muted mt-0.5">
+              You&apos;re on the <span className="capitalize font-medium text-fg-muted">{plan}</span> plan ({employeeLimit} employee{employeeLimit !== 1 ? 's' : ''} max).
               New employees won&apos;t be able to join until you upgrade.
             </p>
           </div>
           <button
             onClick={() => navigate('/owner/settings', { state: { tab: 'subscription' } })}
-            className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg px-4 py-2 transition-colors"
+            className="btn-primary shrink-0 text-xs px-4 py-2"
           >
             Upgrade Plan
           </button>
@@ -118,20 +118,20 @@ export default function CrewPage() {
 
       {/* Invite code */}
       {inviteCode && (
-        <div className="bg-indigo-500/10 border border-indigo-500/25 rounded-xl px-5 py-4 mb-6 flex items-center gap-4">
+        <div className="bg-surface border border-line rounded-xl px-5 py-4 mb-6 flex items-center gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-indigo-300 uppercase tracking-widest mb-1">Business Invite Code</p>
-            <p className="text-2xl font-mono font-bold text-white tracking-widest">{inviteCode}</p>
-            <p className="text-xs text-slate-400 mt-1">
-              Share this code. Employees go to <span className="text-slate-300">Sign Up → Join a Team</span> and enter it to create their account.
+            <p className="label mb-1">Business Invite Code</p>
+            <p className="text-2xl font-mono font-semibold text-fg tracking-widest">{inviteCode}</p>
+            <p className="text-xs text-fg-muted mt-1">
+              Share this code. Employees go to <span className="text-fg-muted">Sign Up → Join a Team</span> and enter it to create their account.
             </p>
           </div>
           <button
             onClick={copyCode}
             className={`shrink-0 text-xs font-medium border px-3 py-2 rounded-lg transition-colors ${
               copied
-                ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
-                : 'text-indigo-400 border-indigo-500/30 hover:border-indigo-400/50 hover:text-indigo-300'
+                ? 'text-success border-success/40 bg-success/10'
+                : 'text-fg border-line hover:border-line-strong'
             }`}
           >
             {copied ? 'Copied!' : 'Copy'}
@@ -140,18 +140,18 @@ export default function CrewPage() {
       )}
 
       {/* Co-owners */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden mb-4">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="font-semibold text-white">Co-Owners</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Full access — promote an employee to add one</p>
+      <div className="bg-surface rounded-xl border border-line overflow-hidden mb-4">
+        <div className="px-5 py-4 border-b border-line">
+          <h2 className="font-semibold text-fg">Co-Owners</h2>
+          <p className="text-xs text-fg-subtle mt-0.5">Full access — promote an employee to add one</p>
         </div>
 
         {coOwners.length === 0 ? (
-          <p className="px-5 py-8 text-center text-slate-500 text-sm">
+          <p className="px-5 py-8 text-center text-fg-subtle text-sm">
             No co-owners yet. Promote an employee from the list below.
           </p>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {coOwners.map(co => (
               <MemberRow
                 key={co.id}
@@ -165,8 +165,8 @@ export default function CrewPage() {
                 onToggleRole={handleToggleRole}
                 onRemove={handleRemove}
                 roleLabel="Co-Owner"
-                roleColor="text-violet-400 bg-violet-500/10 border-violet-500/20"
-                avatarColor="bg-violet-600/20 border-violet-500/30 text-violet-300"
+                roleColor="text-fg-muted bg-raised border-line"
+                avatarColor="bg-raised border-line text-fg-muted"
                 toggleLabel="Demote to Employee"
               />
             ))}
@@ -175,20 +175,20 @@ export default function CrewPage() {
       </div>
 
       {/* Employees */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-          <h2 className="font-semibold text-white">Employees</h2>
-          <span className="text-xs text-slate-500">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+          <h2 className="font-semibold text-fg">Employees</h2>
+          <span className="text-xs text-fg-subtle">
             {employees.length}{isFinite(employeeLimit) && !isAdmin ? ` / ${employeeLimit}` : ''} registered
           </span>
         </div>
 
         {employees.length === 0 ? (
-          <p className="px-5 py-10 text-center text-slate-500 text-sm">
+          <p className="px-5 py-10 text-center text-fg-subtle text-sm">
             No employees yet — share the invite code above so they can register.
           </p>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {employees.map(emp => (
               <MemberRow
                 key={emp.id}
@@ -202,8 +202,8 @@ export default function CrewPage() {
                 onToggleRole={handleToggleRole}
                 onRemove={handleRemove}
                 roleLabel="Employee"
-                roleColor="text-slate-300 bg-slate-700/50 border-slate-600/50"
-                avatarColor="bg-indigo-600/20 border-indigo-500/30 text-indigo-300"
+                roleColor="text-fg-muted bg-overlay/50 border-line-strong"
+                avatarColor="bg-raised border-line text-fg-muted"
                 toggleLabel="Promote to Co-Owner"
               />
             ))}
@@ -224,14 +224,14 @@ function MemberRow({
   return (
     <div className="px-5 py-4 flex flex-wrap sm:flex-nowrap items-center gap-3">
       {/* Avatar */}
-      <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor}`}>
+      <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-semibold shrink-0 ${avatarColor}`}>
         {member.name[0]}
       </div>
 
       {/* Name / email */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{member.name}</p>
-        <p className="text-xs text-slate-400 truncate">{member.email}</p>
+        <p className="text-sm font-medium text-fg truncate">{member.name}</p>
+        <p className="text-xs text-fg-muted truncate">{member.email}</p>
       </div>
 
       {/* Role badge */}
@@ -243,21 +243,21 @@ function MemberRow({
       <div className="w-full sm:w-auto order-last sm:order-none pl-12 sm:pl-0">
         {editingRate?.id === member.id ? (
           <div className="flex items-center gap-1">
-            <span className="text-slate-400 text-xs">$</span>
+            <span className="text-fg-muted text-xs">$</span>
             <input
               type="number" min="0" step="0.50" value={editingRate.value}
               onChange={e => setEditingRate(r => ({ ...r, value: e.target.value }))}
               onBlur={() => commitRate(member.id)}
               onKeyDown={e => { if (e.key === 'Enter') commitRate(member.id); if (e.key === 'Escape') setEditingRate(null) }}
               autoFocus
-              className="w-20 bg-slate-700 border border-indigo-500 rounded px-2 py-1.5 text-white text-sm text-right focus:outline-none tabular-nums"
+              className="w-20 bg-overlay border border-accent rounded px-2 py-1.5 text-fg text-sm text-right focus:outline-none tabular-nums"
             />
-            <span className="text-slate-400 text-xs">/hr</span>
+            <span className="text-fg-muted text-xs">/hr</span>
           </div>
         ) : (
           <button
             onClick={() => setEditingRate({ id: member.id, value: member.hourly_rate ?? '' })}
-            className={`inline-flex items-center gap-1.5 text-sm transition-colors ${member.hourly_rate ? 'text-slate-300 hover:text-white' : 'text-amber-400 hover:text-amber-300'}`}
+            className={`inline-flex items-center gap-1.5 text-sm transition-colors ${member.hourly_rate ? 'text-fg-muted hover:text-fg' : 'text-warning hover:text-warning/80'}`}
             title="Click to edit rate"
           >
             {member.hourly_rate ? `$${member.hourly_rate}/hr` : 'Set rate'}
@@ -273,10 +273,10 @@ function MemberRow({
         <div className="shrink-0">
           {confirm === member.id ? (
             <div className="flex items-center gap-2">
-              <button onClick={() => onRemove(member.id)} className="text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 px-2.5 py-1.5 rounded-lg transition-colors">
+              <button onClick={() => onRemove(member.id)} className="text-xs font-semibold text-fg bg-danger hover:bg-danger/85 px-2.5 py-1.5 rounded-lg transition-colors">
                 Remove
               </button>
-              <button onClick={() => setConfirm(null)} className="text-xs text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => setConfirm(null)} className="text-xs text-fg-muted hover:text-fg transition-colors">
                 Cancel
               </button>
             </div>
@@ -284,13 +284,13 @@ function MemberRow({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onToggleRole(member)}
-                className="text-xs text-slate-400 hover:text-indigo-400 border border-slate-700 hover:border-indigo-500/50 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                className="text-xs text-fg-muted hover:text-fg border border-line hover:border-line-strong px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
               >
                 {toggleLabel}
               </button>
               <button
                 onClick={() => setConfirm(member.id)}
-                className="text-xs text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/50 px-2.5 py-1.5 rounded-lg transition-colors"
+                className="text-xs text-fg-muted hover:text-danger border border-line hover:border-danger/50 px-2.5 py-1.5 rounded-lg transition-colors"
               >
                 Remove
               </button>

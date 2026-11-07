@@ -76,14 +76,14 @@ export default function Layout() {
   }, [user.id])
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-base">
 
       {/* ── Desktop sidebar ───────────────────────────────────────────── */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-60 flex-col bg-slate-900 border-r border-slate-800">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-60 flex-col bg-base border-r border-line">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
-          <span className="text-xl font-bold tracking-tight text-white">
-            Poly<span className="text-indigo-400">HQ</span>
+        <div className="h-14 flex items-center px-5 border-b border-line shrink-0">
+          <span className="text-lg font-semibold text-fg">
+            Poly<span className="text-accent-fg">HQ</span>
           </span>
         </div>
 
@@ -95,7 +95,7 @@ export default function Layout() {
               return (
                 <NavLink key={to} to={to} end
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : locked ? 'text-slate-600 hover:bg-slate-800 hover:text-slate-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-accent-subtle text-accent-fg' : locked ? 'text-fg-subtle hover:bg-raised hover:text-fg-muted' : 'text-fg-muted hover:bg-raised hover:text-fg'}`
                   }>
                   <Icon />
                   <span className="flex-1">{label}</span>
@@ -107,15 +107,15 @@ export default function Layout() {
 
           {isOwner && (
             <>
-              <div className="my-4 border-t border-slate-800" />
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest px-3 mb-2">Finance</p>
+              <div className="my-4 border-t border-line" />
+              <p className="font-mono text-2xs font-medium text-fg-subtle uppercase tracking-wider px-3 mb-2">Finance</p>
               <div className="space-y-0.5">
                 {OWNER_FINANCE_LINKS.map(({ to, label, icon: Icon, feature }) => {
                   const locked = feature && !canUse(feature)
                   return (
                     <NavLink key={to} to={to} end
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600 text-white' : locked ? 'text-slate-600 hover:bg-slate-800 hover:text-slate-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-accent-subtle text-accent-fg' : locked ? 'text-fg-subtle hover:bg-raised hover:text-fg-muted' : 'text-fg-muted hover:bg-raised hover:text-fg'}`
                       }>
                       <Icon />
                       <span className="flex-1">{label}</span>
@@ -129,21 +129,21 @@ export default function Layout() {
         </nav>
 
         {/* User footer */}
-        <div className="p-3 border-t border-slate-800 shrink-0">
+        <div className="p-3 border-t border-line shrink-0">
           <button
             onClick={() => setPanelOpen(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800 transition-colors group mb-2"
+            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-raised transition-colors group mb-2"
           >
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-overlay border border-line flex items-center justify-center text-fg text-sm font-semibold shrink-0">
               {user?.name?.[0]}
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400 truncate">
+              <p className="text-sm font-medium text-fg truncate">{user?.name}</p>
+              <p className="font-mono text-2xs text-fg-subtle truncate">
                 {activeBiz ? activeBiz.name : (user?.role === 'co_owner' ? 'Co-Owner' : user?.role === 'owner' ? 'Owner' : 'Employee')}
               </p>
             </div>
-            <svg className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 text-fg-subtle group-hover:text-fg-muted shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
             </svg>
           </button>
@@ -154,15 +154,15 @@ export default function Layout() {
       {/* ── Main content ─────────────────────────────────────────────── */}
       <main className="md:ml-60 min-h-screen pb-14 md:pb-0 relative">
         {/* Mobile top header */}
-        <header className="md:hidden sticky top-0 z-30 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 flex items-center justify-between px-4 h-12 shrink-0">
-          <span className="text-base font-bold text-white">Poly<span className="text-indigo-400">HQ</span></span>
+        <header className="md:hidden sticky top-0 z-30 bg-base/90 backdrop-blur-sm border-b border-line flex items-center justify-between px-4 h-12 shrink-0">
+          <span className="text-base font-semibold text-fg">Poly<span className="text-accent-fg">HQ</span></span>
           <div className="flex items-center gap-1">
             <NotificationBell />
             <button
               onClick={() => setPanelOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-raised transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-overlay border border-line flex items-center justify-center text-fg text-xs font-semibold">
                 {user?.name?.[0]}
               </div>
             </button>
@@ -172,8 +172,8 @@ export default function Layout() {
         {/* Mobile background watermark */}
         <div className="md:hidden fixed inset-x-0 top-12 bottom-16 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
           <div className="opacity-[0.035] text-center -rotate-12">
-            <p className="font-black tracking-tight text-white leading-none" style={{ fontSize: '22vw' }}>Poly</p>
-            <p className="font-black tracking-tight text-indigo-400 leading-none" style={{ fontSize: '28vw' }}>HQ</p>
+            <p className="font-semibold tracking-tight text-fg leading-none" style={{ fontSize: '22vw' }}>Poly</p>
+            <p className="font-semibold tracking-tight text-accent-fg leading-none" style={{ fontSize: '28vw' }}>HQ</p>
           </div>
         </div>
         <div className="relative z-10">
@@ -182,7 +182,7 @@ export default function Layout() {
       </main>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-14 bg-slate-900 border-t border-slate-800 flex items-stretch">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-14 bg-base border-t border-line flex items-stretch">
         {bottomLinks.map(({ to, label, icon: Icon, feature }) => {
           const isChat   = to.endsWith('/comms')
           const locked   = feature && !canUse(feature)
@@ -190,24 +190,24 @@ export default function Layout() {
             <NavLink key={to} to={to} end
               onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${isActive ? 'text-indigo-400' : locked ? 'text-slate-700' : 'text-slate-500'}`
+                `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${isActive ? 'text-accent-fg' : locked ? 'text-fg-subtle' : 'text-fg-subtle'}`
               }>
               <div className="relative">
                 <Icon size="mobile" />
                 {isChat && !locked && unreadComms > 0 && (
-                  <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 bg-rose-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
+                  <span className="absolute -top-1 -right-1.5 min-w-[14px] h-3.5 bg-danger rounded-full text-fg text-2xs font-semibold flex items-center justify-center px-0.5 leading-none">
                     {unreadComms > 9 ? '9+' : unreadComms}
                   </span>
                 )}
                 {locked && (
                   <span className="absolute -top-0.5 -right-1.5">
-                    <svg className="w-2.5 h-2.5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-2.5 h-2.5 text-fg-subtle" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-medium leading-none">{label}</span>
+              <span className="text-2xs font-medium leading-none">{label}</span>
             </NavLink>
           )
         })}
@@ -215,10 +215,10 @@ export default function Layout() {
         {isOwner && (
           <button
             onClick={() => setMoreOpen(o => !o)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${moreOpen ? 'text-indigo-400' : 'text-slate-500'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${moreOpen ? 'text-accent-fg' : 'text-fg-subtle'}`}
           >
             <MoreIcon size="mobile" />
-            <span className="text-[10px] font-medium leading-none">More</span>
+            <span className="text-2xs font-medium leading-none">More</span>
           </button>
         )}
       </nav>
@@ -227,13 +227,13 @@ export default function Layout() {
       {isOwner && (
         <>
           <div
-            className={`md:hidden fixed inset-0 z-30 bg-black/60 transition-opacity duration-300 ${moreOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`md:hidden fixed inset-0 z-30 bg-base/60 transition-opacity duration-300 ${moreOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             onClick={() => setMoreOpen(false)}
           />
 
-          <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
+          <div className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line rounded-t-2xl transition-transform duration-300 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
             <div className="flex justify-center pt-2.5 pb-1">
-              <div className="w-9 h-1 rounded-full bg-slate-700" />
+              <div className="w-9 h-1 rounded-full bg-overlay" />
             </div>
 
             <div className="px-3 pt-1 pb-2">
@@ -243,7 +243,7 @@ export default function Layout() {
                   <NavLink key={to} to={to} end
                     onClick={() => setMoreOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-4 px-4 py-3.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-indigo-600/15 text-indigo-400' : locked ? 'text-slate-500 active:bg-slate-800' : 'text-slate-200 active:bg-slate-800'}`
+                      `flex items-center gap-4 px-4 py-3.5 rounded-lg mb-0.5 transition-colors ${isActive ? 'bg-accent-subtle text-accent-fg' : locked ? 'text-fg-subtle active:bg-raised' : 'text-fg active:bg-raised'}`
                     }
                   >
                     <Icon size="mobile" />
@@ -254,12 +254,12 @@ export default function Layout() {
               })}
             </div>
 
-            <div className="mx-3 border-t border-slate-800 pt-1 pb-2">
+            <div className="mx-3 border-t border-line pt-1 pb-2">
               <button
                 onClick={() => { setMoreOpen(false); setPanelOpen(true) }}
-                className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-slate-200 active:bg-slate-800 transition-colors"
+                className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-fg active:bg-raised transition-colors"
               >
-                <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                <div className="w-5 h-5 rounded-full bg-overlay border border-line flex items-center justify-center text-fg text-2xs font-semibold shrink-0">
                   {user?.name?.[0]}
                 </div>
                 <span className="flex-1 text-sm font-medium">Profile &amp; Accounts</span>
@@ -280,7 +280,7 @@ export default function Layout() {
 /* ── Icons ────────────────────────────────────────────────────────────── */
 function NavLockIcon() {
   return (
-    <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <svg className="w-3 h-3 text-fg-subtle shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
   )
@@ -405,7 +405,7 @@ function WalletIcon({ size }) {
 }
 function ChevronRight() {
   return (
-    <svg className="w-4 h-4 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-4 h-4 text-fg-subtle shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
   )

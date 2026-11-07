@@ -4,9 +4,9 @@ import { getJobsInRange, getTodayClockRecords, getAllTeamMembers, getNotesForJob
 import { supabase } from '../lib/supabase.js'
 
 const STATUS_META = {
-  scheduled:   { label: 'Scheduled',   badge: 'bg-blue-500/15 text-blue-400',       border: 'border-l-blue-500',    next: 'in_progress', nextLabel: 'Start Job',    nextClass: 'bg-amber-500/10 border-amber-500/40 text-amber-400 hover:bg-amber-500/20' },
-  in_progress: { label: 'In Progress', badge: 'bg-amber-500/15 text-amber-400',     border: 'border-l-amber-500',   next: 'completed',   nextLabel: 'Mark Complete', nextClass: 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20' },
-  completed:   { label: 'Completed',   badge: 'bg-emerald-500/15 text-emerald-400', border: 'border-l-emerald-500', next: null,          nextLabel: '',              nextClass: '' },
+  scheduled:   { label: 'Scheduled',   badge: 'bg-raised text-fg-muted',       border: 'border-l-accent',    next: 'in_progress', nextLabel: 'Start Job',    nextClass: 'bg-warning/10 border-warning/40 text-warning hover:bg-warning/20' },
+  in_progress: { label: 'In Progress', badge: 'bg-warning/15 text-warning',     border: 'border-l-warning',   next: 'completed',   nextLabel: 'Mark Complete', nextClass: 'bg-success/10 border-success/40 text-success hover:bg-success/20' },
+  completed:   { label: 'Completed',   badge: 'bg-success/15 text-success', border: 'border-l-success', next: null,          nextLabel: '',              nextClass: '' },
 }
 
 function fmtTime(ts) {
@@ -128,7 +128,7 @@ export default function ActiveJobsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
       </div>
     )
   }
@@ -141,20 +141,20 @@ export default function ActiveJobsPage() {
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-0.5">
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-fg flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5 mt-0.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
               </span>
               Active Jobs
             </h1>
             {inProgressCount > 0 && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">
                 {inProgressCount} in progress
               </span>
             )}
           </div>
-          <p className="text-slate-400 text-sm">
+          <p className="text-fg-muted text-sm">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -162,20 +162,20 @@ export default function ActiveJobsPage() {
           <div className="flex items-center gap-2">
             <Link
               to="/owner/schedule"
-              className="text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+              className="text-xs text-fg-muted hover:text-fg border border-line hover:border-line-strong px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               Schedule
             </Link>
             <button
               onClick={load}
-              className="text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-400/50 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs text-fg border border-line hover:border-line-strong px-3 py-1.5 rounded-lg transition-colors"
             >
               Refresh
             </button>
           </div>
           {lastUpdated && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-fg-subtle">
               Updated {fmtTime(lastUpdated)} · live
             </p>
           )}
@@ -187,12 +187,12 @@ export default function ActiveJobsPage() {
         {jobs.length === 0 ? (
           <Empty>
             No jobs scheduled for today.{' '}
-            <Link to="/owner/schedule" className="text-indigo-400 hover:text-indigo-300">
+            <Link to="/owner/schedule" className="text-fg underline-offset-4 hover:underline">
               Go to Schedule →
             </Link>
           </Empty>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {jobs.map(job => {
               const meta     = STATUS_META[job.status] || STATUS_META.scheduled
               const assigned = (job.assigned_to || []).map(uid => ({
@@ -205,25 +205,25 @@ export default function ActiveJobsPage() {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <p className="font-semibold text-white">{job.client_name}</p>
+                        <p className="font-semibold text-fg">{job.client_name}</p>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${meta.badge}`}>{meta.label}</span>
                         {job.price > 0 && (
-                          <span className="text-xs text-emerald-400 tabular-nums">${Number(job.price).toFixed(2)}</span>
+                          <span className="text-xs text-success tabular-nums">${Number(job.price).toFixed(2)}</span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-400">{job.service_type}</p>
+                      <p className="text-sm text-fg-muted">{job.service_type}</p>
                       {job.client_address && (
                         <a
                           href={`https://maps.google.com/?q=${encodeURIComponent(job.client_address)}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-indigo-400/70 hover:text-indigo-300 mt-0.5 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-fg-muted hover:text-fg mt-0.5 transition-colors"
                         >
                           <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                           <span className="truncate">{job.client_address}</span>
                         </a>
                       )}
                       {job.start_time && (
-                        <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                        <p className="text-xs text-fg-subtle mt-0.5 tabular-nums">
                           {fmt12(job.start_time)}{job.end_time ? ` – ${fmt12(job.end_time)}` : ''}
                         </p>
                       )}
@@ -234,14 +234,14 @@ export default function ActiveJobsPage() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         {assigned.map(({ uid, name, initial, clockedIn: ci }) => (
                           <div key={uid} title={`${name}${ci ? ' · clocked in' : ''}`}
-                            className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${
                               ci
-                                ? 'bg-amber-600/25 border border-amber-500/50 text-amber-300'
-                                : 'bg-indigo-600/25 border border-indigo-500/40 text-indigo-300'
+                                ? 'bg-warning/25 border border-warning/50 text-warning'
+                                : 'bg-accent/25 border border-accent/40 text-accent-fg'
                             }`}>
                             {initial}
                             {ci && (
-                              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-400 rounded-full border border-slate-900" title="Clocked in" />
+                              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-warning rounded-full border border-line" title="Clocked in" />
                             )}
                           </div>
                         ))}
@@ -251,13 +251,13 @@ export default function ActiveJobsPage() {
 
                   {/* Latest progress note */}
                   {note && (
-                    <div className="mt-3 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2.5 flex items-start gap-2">
-                      <svg className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="mt-3 bg-raised/60 border border-line rounded-lg px-3 py-2.5 flex items-start gap-2">
+                      <svg className="w-3.5 h-3.5 text-fg-subtle mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                       </svg>
                       <div className="min-w-0">
-                        <p className="text-sm text-slate-200 leading-snug">"{note.body}"</p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-sm text-fg leading-snug">"{note.body}"</p>
+                        <p className="text-xs text-fg-subtle mt-1">
                           {empName(note.user_id)} · {timeAgo(note.created_at)}
                         </p>
                       </div>
@@ -269,7 +269,7 @@ export default function ActiveJobsPage() {
                     {assigned.length > 0 ? (
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                         {assigned.map(({ uid, name, clockedIn: ci }) => (
-                          <span key={uid} className={`text-xs ${ci ? 'text-amber-400' : 'text-slate-500'}`}>
+                          <span key={uid} className={`text-xs ${ci ? 'text-warning' : 'text-fg-subtle'}`}>
                             {name}{ci ? ' ●' : ''}
                           </span>
                         ))}
@@ -287,7 +287,7 @@ export default function ActiveJobsPage() {
                       </button>
                     )}
                     {!meta.next && (
-                      <span className="text-xs text-emerald-500 flex items-center gap-1">
+                      <span className="text-xs text-success flex items-center gap-1">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Done
                       </span>
@@ -305,29 +305,29 @@ export default function ActiveJobsPage() {
         {clockedIn.length === 0 ? (
           <Empty>Nobody is clocked in right now.</Empty>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {clockedIn.map(r => {
               // Find jobs this person is assigned to today
               const theirJobs = jobs.filter(j => (j.assigned_to || []).includes(r.user_id))
               return (
                 <div key={r.id} className="py-3.5 px-5">
                   <div className="flex items-center gap-3">
-                    <div className="relative w-9 h-9 rounded-full bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-sm font-bold text-amber-300 shrink-0">
+                    <div className="relative w-9 h-9 rounded-full bg-warning/20 border border-warning/30 flex items-center justify-center text-sm font-semibold text-warning shrink-0">
                       {empInitial(r.user_id)}
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-slate-900" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-warning rounded-full border-2 border-line" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{empName(r.user_id)}</p>
-                      <p className="text-xs text-slate-400">Since {fmtTime(r.clock_in)}</p>
+                      <p className="text-sm font-medium text-fg">{empName(r.user_id)}</p>
+                      <p className="text-xs text-fg-muted">Since {fmtTime(r.clock_in)}</p>
                       {theirJobs.length > 0 && (
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        <p className="text-xs text-fg-subtle mt-0.5 truncate">
                           {theirJobs.map(j => j.client_name).join(', ')}
                         </p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-amber-400 tabular-nums">{fmtDuration(r.clock_in)}</p>
-                      <p className="text-xs text-slate-500">elapsed</p>
+                      <p className="text-sm font-semibold text-warning tabular-nums">{fmtDuration(r.clock_in)}</p>
+                      <p className="text-xs text-fg-subtle">elapsed</p>
                     </div>
                   </div>
                 </div>
@@ -342,21 +342,21 @@ export default function ActiveJobsPage() {
         {clockedOut.length === 0 ? (
           <Empty>No one has clocked out yet today.</Empty>
         ) : (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {clockedOut.map(r => (
               <div key={r.id} className="py-3.5 px-5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-700/60 border border-slate-600/40 flex items-center justify-center text-sm font-bold text-slate-400 shrink-0">
+                <div className="w-9 h-9 rounded-full bg-overlay/60 border border-line-strong flex items-center justify-center text-sm font-semibold text-fg-muted shrink-0">
                   {empInitial(r.user_id)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{empName(r.user_id)}</p>
-                  <p className="text-xs text-slate-400 tabular-nums">
+                  <p className="text-sm font-medium text-fg">{empName(r.user_id)}</p>
+                  <p className="text-xs text-fg-muted tabular-nums">
                     {fmtTime(r.clock_in)} → {fmtTime(r.clock_out)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-slate-300 tabular-nums">{fmtDuration(r.clock_in, r.clock_out)}</p>
-                  <p className="text-xs text-slate-500">total</p>
+                  <p className="text-sm font-semibold text-fg-muted tabular-nums">{fmtDuration(r.clock_in, r.clock_out)}</p>
+                  <p className="text-xs text-fg-subtle">total</p>
                 </div>
               </div>
             ))}
@@ -369,14 +369,14 @@ export default function ActiveJobsPage() {
 
 function Section({ title, count, accentColor = 'indigo', children }) {
   const countColors = {
-    indigo: 'bg-indigo-500/15 text-indigo-400',
-    amber:  'bg-amber-500/15 text-amber-400',
-    slate:  'bg-slate-700/60 text-slate-400',
+    indigo: 'bg-raised text-fg-muted',
+    amber:  'bg-warning/15 text-warning',
+    slate:  'bg-overlay/60 text-fg-muted',
   }
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden mb-4">
-      <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
-        <h2 className="font-semibold text-white text-sm">{title}</h2>
+    <div className="bg-surface rounded-xl border border-line overflow-hidden mb-4">
+      <div className="px-5 py-3.5 border-b border-line flex items-center justify-between">
+        <h2 className="font-semibold text-fg text-sm">{title}</h2>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${countColors[accentColor]}`}>{count}</span>
       </div>
       {children}
@@ -385,5 +385,5 @@ function Section({ title, count, accentColor = 'indigo', children }) {
 }
 
 function Empty({ children }) {
-  return <p className="px-5 py-8 text-center text-slate-500 text-sm">{children}</p>
+  return <p className="px-5 py-8 text-center text-fg-subtle text-sm">{children}</p>
 }

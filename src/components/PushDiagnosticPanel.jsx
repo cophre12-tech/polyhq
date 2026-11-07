@@ -22,11 +22,11 @@ export default function PushDiagnosticPanel() {
   const allPassed = steps?.length > 0 && steps.every(s => s.ok)
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6">
+    <div className="bg-surface border border-line rounded-xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-white mb-1">Push Notifications</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-sm font-semibold text-fg mb-1">Push Notifications</h2>
+          <p className="text-xs text-fg-muted">
             Alerts for clock-ins, job completions, and reminders — even when the app is closed.
           </p>
         </div>
@@ -34,7 +34,7 @@ export default function PushDiagnosticPanel() {
           type="button"
           onClick={runTest}
           disabled={running}
-          className="shrink-0 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-2 text-xs transition-colors"
+          className="btn-primary shrink-0 flex gap-2 px-4 py-2 text-xs"
         >
           {running
             ? <><Spinner /> Testing…</>
@@ -69,25 +69,25 @@ export default function PushDiagnosticPanel() {
       </div>
 
       {permission === 'denied' && (
-        <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-4">
+        <p className="text-xs text-warning bg-warning/10 border border-warning/20 rounded-lg px-3 py-2 mb-4">
           Notifications are blocked. Click the lock icon in your browser address bar, set Notifications to Allow, then reload and re-test.
         </p>
       )}
 
       {steps && (
-        <div className="border border-slate-700/60 rounded-lg overflow-hidden">
-          <div className={`px-3 py-2 text-xs font-semibold border-b border-slate-700/60 ${allPassed ? 'text-emerald-400 bg-emerald-500/5' : 'text-rose-400 bg-rose-500/5'}`}>
+        <div className="border border-line rounded-lg overflow-hidden">
+          <div className={`px-3 py-2 text-xs font-semibold border-b border-line ${allPassed ? 'text-success bg-success/5' : 'text-danger bg-danger/5'}`}>
             {allPassed ? 'All steps passed — subscription active' : 'Failed at step below'}
           </div>
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-line">
             {steps.map((s, i) => (
               <div key={i} className="flex items-start gap-3 px-3 py-2.5">
-                <span className={`mt-0.5 shrink-0 text-sm ${s.ok ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`mt-0.5 shrink-0 text-sm ${s.ok ? 'text-success' : 'text-danger'}`}>
                   {s.ok ? '✓' : '✗'}
                 </span>
                 <div className="min-w-0">
-                  <span className={`text-xs font-medium ${s.ok ? 'text-slate-200' : 'text-rose-300'}`}>{s.label}</span>
-                  <p className="text-xs text-slate-500 mt-0.5 break-all">{s.detail}</p>
+                  <span className={`text-xs font-medium ${s.ok ? 'text-fg' : 'text-danger'}`}>{s.label}</span>
+                  <p className="text-xs text-fg-subtle mt-0.5 break-all">{s.detail}</p>
                 </div>
               </div>
             ))}
@@ -96,8 +96,8 @@ export default function PushDiagnosticPanel() {
       )}
 
       {!steps && (
-        <p className="text-xs text-slate-500">
-          Click <span className="text-slate-300">Test Subscription</span> to run the full subscription flow and see exactly where it succeeds or fails.
+        <p className="text-xs text-fg-subtle">
+          Click <span className="text-fg-muted">Test Subscription</span> to run the full subscription flow and see exactly where it succeeds or fails.
         </p>
       )}
     </div>
@@ -105,14 +105,14 @@ export default function PushDiagnosticPanel() {
 }
 
 function EnvCheck({ ok, warn, label, detail }) {
-  const color = ok ? 'text-emerald-400' : warn ? 'text-amber-400' : 'text-rose-400'
-  const bg    = ok ? 'bg-emerald-500/5 border-emerald-500/20' : warn ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'
+  const color = ok ? 'text-success' : warn ? 'text-warning' : 'text-danger'
+  const bg    = ok ? 'bg-success/5 border-success/20' : warn ? 'bg-warning/5 border-warning/20' : 'bg-danger/5 border-danger/20'
   return (
     <div className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${bg}`}>
       <span className={`text-sm shrink-0 mt-0.5 ${color}`}>{ok ? '✓' : warn ? '~' : '✗'}</span>
       <div className="min-w-0">
         <p className={`text-xs font-medium ${color}`}>{label}</p>
-        <p className="text-xs text-slate-500 truncate">{detail}</p>
+        <p className="text-xs text-fg-subtle truncate">{detail}</p>
       </div>
     </div>
   )

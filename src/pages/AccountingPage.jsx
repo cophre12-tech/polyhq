@@ -23,14 +23,14 @@ const WRITEOFF_INFO = {
 }
 
 const CAT_COLORS = {
-  Equipment: 'bg-blue-500/15 text-blue-400',
-  Supplies:  'bg-emerald-500/15 text-emerald-400',
-  Travel:    'bg-amber-500/15 text-amber-400',
-  Labor:     'bg-purple-500/15 text-purple-400',
-  Other:     'bg-slate-600/50 text-slate-300',
+  Equipment: 'bg-raised text-fg-muted',
+  Supplies:  'bg-success/15 text-success',
+  Travel:    'bg-warning/15 text-warning',
+  Labor:     'bg-raised text-fg-muted',
+  Other:     'bg-overlay/50 text-fg-muted',
 }
 
-const DONUT_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+const DONUT_COLORS = [1, 2, 3, 4, 5, 6, 7].map(n => `var(--color-chart-${n})`)
 
 const TAX_RATE = 0.25
 const TODAY = new Date().toISOString().split('T')[0]
@@ -80,14 +80,14 @@ export default function AccountingPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Accounting</h1>
-          <p className="text-slate-400 mt-1 text-sm">Revenue, expenses, P&amp;L, and tax write-offs</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-fg">Accounting</h1>
+          <p className="text-fg-muted mt-1 text-sm">Revenue, expenses, P&amp;L, and tax write-offs</p>
         </div>
         {tab !== 'charts' && (
           <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             {FILTERS.map(f => (
               <button key={f.id} onClick={() => setFilter(f.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f.id ? 'bg-accent text-fg' : 'bg-raised text-fg-muted hover:bg-overlay'}`}>
                 {f.label}
               </button>
             ))}
@@ -105,10 +105,10 @@ export default function AccountingPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-900 rounded-xl p-1 border border-slate-800 overflow-x-auto">
+      <div className="flex gap-1 mb-6 bg-surface rounded-xl p-1 border border-line overflow-x-auto">
         {TABS.map((label, i) => (
           <button key={TAB_IDS[i]} onClick={() => setTab(TAB_IDS[i])}
-            className={`px-4 sm:px-5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === TAB_IDS[i] ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}>
+            className={`px-4 sm:px-5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === TAB_IDS[i] ? 'bg-overlay text-fg' : 'text-fg-muted hover:text-fg'}`}>
             {label}
           </button>
         ))}
@@ -126,11 +126,11 @@ export default function AccountingPage() {
 // ── Charts ────────────────────────────────────────────────────────────────────
 
 const TOOLTIP_STYLE = {
-  contentStyle: { backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '13px', padding: '8px 12px' },
-  labelStyle: { color: '#94a3b8', marginBottom: 4, fontSize: '11px' },
-  itemStyle: { color: '#fff', padding: 0 },
+  contentStyle: { backgroundColor: 'var(--color-overlay)', border: '1px solid var(--color-line-strong)', borderRadius: 'var(--radius-lg)', fontSize: '13px', padding: '8px 12px' },
+  labelStyle: { color: 'var(--color-fg-muted)', marginBottom: 4, fontSize: '11px', fontFamily: 'var(--font-mono)' },
+  itemStyle: { color: 'var(--color-fg)', padding: 0 },
 }
-const AXIS_TICK = { fill: '#64748b', fontSize: 11 }
+const AXIS_TICK = { fill: 'var(--color-fg-subtle)', fontSize: 11, fontFamily: 'var(--font-mono)' }
 
 function getMonday(d) {
   const date = new Date(d)
@@ -212,30 +212,30 @@ function ChartsTab({ revenue, expenses }) {
       {/* Bar + Donut */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar chart */}
-        <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-          <h3 className="font-semibold text-white mb-0.5">Revenue This Month</h3>
-          <p className="text-xs text-slate-500 mb-5">{monthName} — by week</p>
+        <div className="lg:col-span-2 bg-surface rounded-xl border border-line p-5 sm:p-6">
+          <h3 className="font-semibold text-fg mb-0.5">Revenue This Month</h3>
+          <p className="text-xs text-fg-subtle mb-5">{monthName} — by week</p>
           {hasBarData ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={barData} barSize={42} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
                 <XAxis dataKey="week" tick={AXIS_TICK} axisLine={false} tickLine={false} />
                 <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={46} />
                 <Tooltip
                   {...TOOLTIP_STYLE}
-                  cursor={{ fill: 'rgba(99,102,241,0.07)' }}
+                  cursor={{ fill: 'var(--color-accent-subtle)' }}
                   formatter={v => [formatCurrency(v), 'Revenue']}
                 />
-                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <EmptyChart />}
         </div>
 
         {/* Donut chart */}
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-          <h3 className="font-semibold text-white mb-0.5">By Service Type</h3>
-          <p className="text-xs text-slate-500 mb-4">All time</p>
+        <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+          <h3 className="font-semibold text-fg mb-0.5">By Service Type</h3>
+          <p className="text-xs text-fg-subtle mb-4">All time</p>
           {hasDonutData ? (
             <>
               <div className="relative">
@@ -265,8 +265,8 @@ function ChartsTab({ revenue, expenses }) {
                 {/* Center label */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <p className="text-xs text-slate-500 mb-0.5">Total</p>
-                    <p className="text-base font-bold text-white tabular-nums">{formatCurrency(totalRevenue)}</p>
+                    <p className="text-xs text-fg-subtle mb-0.5">Total</p>
+                    <p className="text-base font-semibold text-fg tabular-nums">{formatCurrency(totalRevenue)}</p>
                   </div>
                 </div>
               </div>
@@ -275,8 +275,8 @@ function ChartsTab({ revenue, expenses }) {
                 {donutData.slice(0, 6).map(({ name, value }, i) => (
                   <div key={name} className="flex items-center gap-2 text-xs">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                    <span className="text-slate-400 truncate flex-1">{name}</span>
-                    <span className="text-slate-300 tabular-nums font-medium">{formatCurrency(value)}</span>
+                    <span className="text-fg-muted truncate flex-1">{name}</span>
+                    <span className="text-fg-muted tabular-nums font-medium">{formatCurrency(value)}</span>
                   </div>
                 ))}
               </div>
@@ -286,32 +286,32 @@ function ChartsTab({ revenue, expenses }) {
       </div>
 
       {/* Line chart */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-        <h3 className="font-semibold text-white mb-0.5">Revenue Trend</h3>
-        <p className="text-xs text-slate-500 mb-5">Weekly — past 3 months</p>
+      <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+        <h3 className="font-semibold text-fg mb-0.5">Revenue Trend</h3>
+        <p className="text-xs text-fg-subtle mb-5">Weekly — past 3 months</p>
         {hasTrendData ? (
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={trendData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%"  stopColor="var(--color-accent)" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
               <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={2} />
               <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={fmtAxis} width={46} />
               <Tooltip
                 {...TOOLTIP_STYLE}
-                cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                cursor={{ stroke: 'var(--color-accent)', strokeWidth: 1, strokeDasharray: '4 4' }}
                 formatter={v => [formatCurrency(v), 'Revenue']}
               />
               <Line
                 dataKey="revenue"
-                stroke="#6366f1"
+                stroke="var(--color-accent)"
                 strokeWidth={2}
-                dot={{ fill: '#6366f1', strokeWidth: 0, r: 3 }}
-                activeDot={{ r: 5, fill: '#818cf8', strokeWidth: 0 }}
+                dot={{ fill: 'var(--color-accent)', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: 'var(--color-accent-hover)', strokeWidth: 0 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -324,7 +324,7 @@ function ChartsTab({ revenue, expenses }) {
 function EmptyChart() {
   return (
     <div className="h-56 flex items-center justify-center">
-      <p className="text-slate-600 text-sm">No data yet</p>
+      <p className="text-fg-subtle text-sm">No data yet</p>
     </div>
   )
 }
@@ -337,63 +337,63 @@ function OverviewTab({ revenue, expenses, totalRevenue, totalExpenses, netProfit
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-        <h3 className="font-semibold text-white mb-5">Profit &amp; Loss Statement</h3>
+      <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+        <h3 className="font-semibold text-fg mb-5">Profit &amp; Loss Statement</h3>
 
         <div className="space-y-2 mb-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-800">Revenue</p>
+          <p className="font-mono text-2xs font-medium text-fg-muted uppercase tracking-wider pb-1 border-b border-line">Revenue</p>
           {Object.keys(revenueByService).length === 0
-            ? <p className="text-slate-500 text-sm py-1">No revenue recorded</p>
+            ? <p className="text-fg-subtle text-sm py-1">No revenue recorded</p>
             : Object.entries(revenueByService).map(([type, amt]) => (
               <div key={type} className="flex justify-between">
-                <span className="text-sm text-slate-400">{type}</span>
-                <span className="text-sm text-white tabular-nums">{formatCurrency(amt)}</span>
+                <span className="text-sm text-fg-muted">{type}</span>
+                <span className="text-sm text-fg tabular-nums">{formatCurrency(amt)}</span>
               </div>
             ))
           }
-          <div className="flex justify-between pt-2 border-t border-slate-700">
-            <span className="text-sm font-semibold text-white">Total Revenue</span>
-            <span className="text-sm font-bold text-emerald-400 tabular-nums">{formatCurrency(totalRevenue)}</span>
+          <div className="flex justify-between pt-2 border-t border-line">
+            <span className="text-sm font-semibold text-fg">Total Revenue</span>
+            <span className="text-sm font-semibold text-success tabular-nums">{formatCurrency(totalRevenue)}</span>
           </div>
         </div>
 
         <div className="space-y-2 mb-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-800">Expenses</p>
+          <p className="font-mono text-2xs font-medium text-fg-muted uppercase tracking-wider pb-1 border-b border-line">Expenses</p>
           {Object.keys(expensesByCategory).length === 0
-            ? <p className="text-slate-500 text-sm py-1">No expenses recorded</p>
+            ? <p className="text-fg-subtle text-sm py-1">No expenses recorded</p>
             : Object.entries(expensesByCategory).map(([cat, amt]) => (
               <div key={cat} className="flex justify-between">
-                <span className="text-sm text-slate-400">{cat}</span>
-                <span className="text-sm text-rose-400 tabular-nums">{formatCurrency(amt)}</span>
+                <span className="text-sm text-fg-muted">{cat}</span>
+                <span className="text-sm text-danger tabular-nums">{formatCurrency(amt)}</span>
               </div>
             ))
           }
-          <div className="flex justify-between pt-2 border-t border-slate-700">
-            <span className="text-sm font-semibold text-white">Total Expenses</span>
-            <span className="text-sm font-bold text-rose-400 tabular-nums">{formatCurrency(totalExpenses)}</span>
+          <div className="flex justify-between pt-2 border-t border-line">
+            <span className="text-sm font-semibold text-fg">Total Expenses</span>
+            <span className="text-sm font-semibold text-danger tabular-nums">{formatCurrency(totalExpenses)}</span>
           </div>
         </div>
 
-        <div className={`flex justify-between items-center py-3 px-4 rounded-xl border ${netProfit >= 0 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-rose-500/10 border-rose-500/25'}`}>
-          <span className="font-bold text-white">Net Profit</span>
-          <span className={`text-xl font-bold tabular-nums ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(netProfit)}</span>
+        <div className={`flex justify-between items-center py-3 px-4 rounded-xl border ${netProfit >= 0 ? 'bg-success/10 border-success/25' : 'bg-danger/10 border-danger/25'}`}>
+          <span className="font-semibold text-fg">Net Profit</span>
+          <span className={`text-xl font-semibold tabular-nums ${netProfit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(netProfit)}</span>
         </div>
       </div>
 
       <div className="space-y-4">
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-          <h3 className="font-semibold text-white mb-4">Revenue by Service</h3>
+        <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+          <h3 className="font-semibold text-fg mb-4">Revenue by Service</h3>
           {Object.keys(revenueByService).length === 0
-            ? <p className="text-slate-500 text-sm">No revenue yet</p>
+            ? <p className="text-fg-subtle text-sm">No revenue yet</p>
             : Object.entries(revenueByService).sort(([,a],[,b]) => b-a).map(([type, amt]) => (
               <BarRow key={type} label={type} amount={amt} total={totalRevenue} color="emerald" />
             ))
           }
         </div>
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-          <h3 className="font-semibold text-white mb-4">Expenses by Category</h3>
+        <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+          <h3 className="font-semibold text-fg mb-4">Expenses by Category</h3>
           {Object.keys(expensesByCategory).length === 0
-            ? <p className="text-slate-500 text-sm">No expenses yet</p>
+            ? <p className="text-fg-subtle text-sm">No expenses yet</p>
             : Object.entries(expensesByCategory).sort(([,a],[,b]) => b-a).map(([cat, amt]) => (
               <BarRow key={cat} label={cat} amount={amt} total={totalExpenses} color="rose" />
             ))
@@ -432,8 +432,8 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-        <h3 className="font-semibold text-white mb-5">Log Revenue</h3>
+      <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+        <h3 className="font-semibold text-fg mb-5">Log Revenue</h3>
         <form onSubmit={handleAdd} className="space-y-4">
           <Field label="Date"><input type="date" value={form.date} onChange={e => set('date', e.target.value)} required className="input" /></Field>
           <Field label="Client Name"><input type="text" value={form.client} onChange={e => set('client', e.target.value)} required placeholder="Smith Residence" className="input" /></Field>
@@ -443,21 +443,21 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
             </select>
           </Field>
           <Field label="Amount ($)"><input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => set('amount', e.target.value)} required placeholder="0.00" className="input" /></Field>
-          {error && <p className="text-rose-400 text-xs">{error}</p>}
-          <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-3 sm:py-2.5 text-sm transition-colors">Add Revenue</button>
+          {error && <p className="text-danger text-xs">{error}</p>}
+          <button type="submit" className="btn-primary w-full py-3 sm:py-2.5 text-sm">Add Revenue</button>
         </form>
       </div>
 
-      <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-          <h3 className="font-semibold text-white">Revenue Log</h3>
-          <span className="text-sm text-slate-400 tabular-nums">{revenue.length} · {formatCurrency(total)}</span>
+      <div className="lg:col-span-2 bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-line flex justify-between items-center">
+          <h3 className="font-semibold text-fg">Revenue Log</h3>
+          <span className="text-sm text-fg-muted tabular-nums">{revenue.length} · {formatCurrency(total)}</span>
         </div>
         {revenue.length === 0
-          ? <p className="px-6 py-10 text-center text-slate-500 text-sm">No revenue logged yet.</p>
-          : <div className="divide-y divide-slate-800/60">
+          ? <p className="px-6 py-10 text-center text-fg-subtle text-sm">No revenue logged yet.</p>
+          : <div className="divide-y divide-line">
               {revenue.map(r => (
-                <div key={r.id} className="flex items-center px-4 sm:px-6 py-4 gap-3 sm:gap-4 hover:bg-slate-800/30 transition-colors group">
+                <div key={r.id} className="flex items-center px-4 sm:px-6 py-4 gap-3 sm:gap-4 hover:bg-raised/30 transition-colors group">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <select
@@ -466,7 +466,7 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
                           await updateRevenue(r.id, { service_type: e.target.value })
                           onUpdate()
                         }}
-                        className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-transparent hover:border-emerald-500/40 focus:border-emerald-500 focus:outline-none cursor-pointer transition-colors appearance-none"
+                        className="text-xs font-medium px-2 py-0.5 rounded-full bg-success/15 text-success border border-transparent hover:border-success/40 focus:border-success focus:outline-none cursor-pointer transition-colors appearance-none"
                       >
                         {/* Keep current value selectable even if removed from settings */}
                         {[...new Set([r.service_type, ...serviceNames])].map(s => (
@@ -474,16 +474,16 @@ function RevenueTab({ revenue, serviceNames, onUpdate }) {
                         ))}
                       </select>
                       {r.source === 'job'
-                        ? <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-1.5 py-0.5 leading-none">Job</span>
-                        : <span className="text-[10px] font-semibold text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-1.5 py-0.5 leading-none">Manual</span>
+                        ? <span className="text-2xs font-semibold text-fg-muted bg-raised border border-line rounded-full px-1.5 py-0.5 leading-none">Job</span>
+                        : <span className="text-2xs font-semibold text-fg-subtle bg-raised border border-line rounded-full px-1.5 py-0.5 leading-none">Manual</span>
                       }
-                      <span className="text-xs text-slate-500">{r.date}</span>
+                      <span className="text-xs text-fg-subtle">{r.date}</span>
                     </div>
-                    <p className="text-sm text-white truncate">{r.client}</p>
+                    <p className="text-sm text-fg truncate">{r.client}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-semibold text-emerald-400 tabular-nums text-sm">{formatCurrency(r.amount)}</span>
-                    <button onClick={async () => { await deleteRevenue(r.id); onUpdate() }} className="text-slate-600 hover:text-rose-400 transition-all sm:opacity-0 sm:group-hover:opacity-100"><TrashIcon /></button>
+                    <span className="font-semibold text-success tabular-nums text-sm">{formatCurrency(r.amount)}</span>
+                    <button onClick={async () => { await deleteRevenue(r.id); onUpdate() }} className="text-fg-subtle hover:text-danger transition-all sm:opacity-0 sm:group-hover:opacity-100"><TrashIcon /></button>
                   </div>
                 </div>
               ))}
@@ -516,8 +516,8 @@ function ExpensesTab({ expenses, onUpdate }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 sm:p-6">
-        <h3 className="font-semibold text-white mb-5">Log Expense</h3>
+      <div className="bg-surface rounded-xl border border-line p-5 sm:p-6">
+        <h3 className="font-semibold text-fg mb-5">Log Expense</h3>
         <form onSubmit={handleAdd} className="space-y-4">
           <Field label="Date"><input type="date" value={form.date} onChange={e => set('date', e.target.value)} required className="input" /></Field>
           <Field label="Category">
@@ -527,21 +527,21 @@ function ExpensesTab({ expenses, onUpdate }) {
           </Field>
           <Field label="Description"><input type="text" value={form.description} onChange={e => set('description', e.target.value)} required placeholder="What was it for?" className="input" /></Field>
           <Field label="Amount ($)"><input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => set('amount', e.target.value)} required placeholder="0.00" className="input" /></Field>
-          {error && <p className="text-rose-400 text-xs">{error}</p>}
-          <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-3 sm:py-2.5 text-sm transition-colors">Add Expense</button>
+          {error && <p className="text-danger text-xs">{error}</p>}
+          <button type="submit" className="btn-primary w-full py-3 sm:py-2.5 text-sm">Add Expense</button>
         </form>
       </div>
 
-      <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-          <h3 className="font-semibold text-white">Expense Log</h3>
-          <span className="text-sm text-slate-400 tabular-nums">{expenses.length} · {formatCurrency(total)}</span>
+      <div className="lg:col-span-2 bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-line flex justify-between items-center">
+          <h3 className="font-semibold text-fg">Expense Log</h3>
+          <span className="text-sm text-fg-muted tabular-nums">{expenses.length} · {formatCurrency(total)}</span>
         </div>
         {expenses.length === 0
-          ? <p className="px-6 py-10 text-center text-slate-500 text-sm">No expenses logged yet.</p>
-          : <div className="divide-y divide-slate-800/60">
+          ? <p className="px-6 py-10 text-center text-fg-subtle text-sm">No expenses logged yet.</p>
+          : <div className="divide-y divide-line">
               {expenses.map(exp => (
-                <div key={exp.id} className="flex items-center px-4 sm:px-6 py-4 gap-3 sm:gap-4 hover:bg-slate-800/30 transition-colors group">
+                <div key={exp.id} className="flex items-center px-4 sm:px-6 py-4 gap-3 sm:gap-4 hover:bg-raised/30 transition-colors group">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${CAT_COLORS[exp.category]}`}>{exp.category}</span>
@@ -554,14 +554,14 @@ function ExpensesTab({ expenses, onUpdate }) {
                             onUpdate()
                           }
                         }}
-                        className="text-xs text-slate-400 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-none cursor-pointer transition-colors"
+                        className="text-xs text-fg-muted bg-transparent border-b border-transparent hover:border-line-strong focus:border-accent focus:outline-none cursor-pointer transition-colors"
                       />
                     </div>
-                    <p className="text-sm text-white truncate">{exp.description}</p>
+                    <p className="text-sm text-fg truncate">{exp.description}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-semibold text-white tabular-nums text-sm">{formatCurrency(exp.amount)}</span>
-                    <button onClick={async () => { await deleteExpense(exp.id); onUpdate() }} className="text-slate-600 hover:text-rose-400 transition-all sm:opacity-0 sm:group-hover:opacity-100"><TrashIcon /></button>
+                    <span className="font-semibold text-fg tabular-nums text-sm">{formatCurrency(exp.amount)}</span>
+                    <button onClick={async () => { await deleteExpense(exp.id); onUpdate() }} className="text-fg-subtle hover:text-danger transition-all sm:opacity-0 sm:group-hover:opacity-100"><TrashIcon /></button>
                   </div>
                 </div>
               ))}
@@ -589,54 +589,54 @@ function WriteoffsTab({ expenses }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 sm:px-6 py-5">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Total Deductible</p>
-          <p className="text-xl sm:text-2xl font-bold text-indigo-400 tabular-nums">{formatCurrency(totalWriteoffs)}</p>
+        <div className="bg-surface border border-line rounded-xl px-4 sm:px-6 py-5">
+          <p className="font-mono text-2xs font-medium text-fg-muted uppercase tracking-wider mb-1.5">Total Deductible</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg tabular-nums">{formatCurrency(totalWriteoffs)}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 sm:px-6 py-5">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Est. Tax Savings</p>
-          <p className="text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums">{formatCurrency(estimatedSavings)}</p>
-          <p className="text-xs text-slate-500 mt-1">At 25% effective rate</p>
+        <div className="bg-surface border border-line rounded-xl px-4 sm:px-6 py-5">
+          <p className="font-mono text-2xs font-medium text-fg-muted uppercase tracking-wider mb-1.5">Est. Tax Savings</p>
+          <p className="text-xl sm:text-2xl font-semibold text-success tabular-nums">{formatCurrency(estimatedSavings)}</p>
+          <p className="text-xs text-fg-subtle mt-1">At 25% effective rate</p>
         </div>
-        <div className="col-span-2 sm:col-span-1 bg-slate-900 border border-slate-800 rounded-xl px-4 sm:px-6 py-5">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Deductible Items</p>
-          <p className="text-xl sm:text-2xl font-bold text-white tabular-nums">{expenses.length}</p>
+        <div className="col-span-2 sm:col-span-1 bg-surface border border-line rounded-xl px-4 sm:px-6 py-5">
+          <p className="font-mono text-2xs font-medium text-fg-muted uppercase tracking-wider mb-1.5">Deductible Items</p>
+          <p className="text-xl sm:text-2xl font-semibold text-fg tabular-nums">{expenses.length}</p>
         </div>
       </div>
 
       {grouped.length === 0
-        ? <div className="bg-slate-900 rounded-xl border border-slate-800 px-6 py-12 text-center text-slate-500 text-sm">No expenses for this period.</div>
+        ? <div className="bg-surface rounded-xl border border-line px-6 py-12 text-center text-fg-subtle text-sm">No expenses for this period.</div>
         : grouped.map(({ cat, items, total }) => (
-          <div key={cat} className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-            <div className="px-4 sm:px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+          <div key={cat} className="bg-surface rounded-xl border border-line overflow-hidden">
+            <div className="px-4 sm:px-6 py-4 border-b border-line flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3 flex-wrap">
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CAT_COLORS[cat]}`}>{cat}</span>
-                <span className="text-xs text-slate-400">{WRITEOFF_INFO[cat]?.schedule}</span>
+                <span className="text-xs text-fg-muted">{WRITEOFF_INFO[cat]?.schedule}</span>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(total)}</p>
-                <p className="text-xs text-emerald-400 tabular-nums">~{formatCurrency(total * TAX_RATE)} saved</p>
+                <p className="text-sm font-semibold text-fg tabular-nums">{formatCurrency(total)}</p>
+                <p className="text-xs text-success tabular-nums">~{formatCurrency(total * TAX_RATE)} saved</p>
               </div>
             </div>
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-line">
               {items.map(item => (
                 <div key={item.id} className="flex justify-between items-center px-4 sm:px-6 py-3">
                   <div>
-                    <p className="text-sm text-white">{item.description}</p>
-                    <p className="text-xs text-slate-500">{item.date}</p>
+                    <p className="text-sm text-fg">{item.description}</p>
+                    <p className="text-xs text-fg-subtle">{item.date}</p>
                   </div>
-                  <span className="text-sm font-medium text-slate-300 tabular-nums">{formatCurrency(item.amount)}</span>
+                  <span className="text-sm font-medium text-fg-muted tabular-nums">{formatCurrency(item.amount)}</span>
                 </div>
               ))}
             </div>
-            <div className="px-4 sm:px-6 py-3 bg-slate-800/40 border-t border-slate-800">
-              <p className="text-xs text-slate-400">{WRITEOFF_INFO[cat]?.note}</p>
+            <div className="px-4 sm:px-6 py-3 bg-raised/40 border-t border-line">
+              <p className="text-xs text-fg-muted">{WRITEOFF_INFO[cat]?.note}</p>
             </div>
           </div>
         ))
       }
 
-      <p className="text-xs text-slate-500 leading-relaxed">
+      <p className="text-xs text-fg-subtle leading-relaxed">
         * Estimates only. Tax savings calculated at 25% effective rate. Consult a licensed CPA before filing.
         Equipment purchases may require depreciation schedules rather than immediate deduction.
       </p>
@@ -648,10 +648,10 @@ function WriteoffsTab({ expenses }) {
 
 function SummaryCard({ label, value, accent, sub }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 sm:px-5 py-4">
-      <p className="text-xs font-medium text-slate-400 mb-1 sm:mb-1.5 uppercase tracking-wider leading-tight">{label}</p>
-      <p className={`text-lg sm:text-xl font-bold tabular-nums ${accent === 'emerald' ? 'text-emerald-400' : accent === 'rose' ? 'text-rose-400' : accent === 'indigo' ? 'text-indigo-400' : 'text-white'}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+    <div className="bg-surface border border-line rounded-xl px-4 sm:px-5 py-4">
+      <p className="font-mono text-2xs font-medium text-fg-muted mb-1 sm:mb-1.5 uppercase tracking-wider leading-tight">{label}</p>
+      <p className={`text-lg sm:text-xl font-semibold tabular-nums ${accent === 'emerald' ? 'text-success' : accent === 'rose' ? 'text-danger' : accent === 'indigo' ? 'text-fg' : 'text-fg'}`}>{value}</p>
+      {sub && <p className="text-xs text-fg-subtle mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -661,11 +661,11 @@ function BarRow({ label, amount, total, color }) {
   return (
     <div className="mb-3">
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-slate-300">{label}</span>
-        <span className="text-white tabular-nums font-medium">{formatCurrency(amount)}</span>
+        <span className="text-fg-muted">{label}</span>
+        <span className="text-fg tabular-nums font-medium">{formatCurrency(amount)}</span>
       </div>
-      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${pct}%` }} />
+      <div className="h-1.5 bg-overlay rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color === 'emerald' ? 'bg-success' : 'bg-danger'}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -674,7 +674,7 @@ function BarRow({ label, amount, total, color }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-fg-muted mb-1.5">{label}</label>
       {children}
     </div>
   )

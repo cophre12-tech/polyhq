@@ -10,20 +10,20 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-          <div className="max-w-lg w-full bg-slate-900 border border-rose-500/30 rounded-2xl p-8">
-            <h1 className="text-xl font-bold text-rose-400 mb-2">Something went wrong</h1>
-            <p className="text-slate-400 text-sm mb-4">
+        <div className="min-h-screen bg-base flex items-center justify-center p-6">
+          <div className="max-w-lg w-full bg-surface border border-danger/30 rounded-2xl p-8">
+            <h1 className="text-xl font-semibold text-danger mb-2">Something went wrong</h1>
+            <p className="text-fg-muted text-sm mb-4">
               The app crashed with the following error. Share this with the developer.
             </p>
-            <pre className="bg-slate-950 rounded-lg p-4 text-xs text-rose-300 overflow-auto whitespace-pre-wrap break-all">
+            <pre className="bg-base rounded-lg p-4 text-xs text-danger overflow-auto whitespace-pre-wrap break-all">
               {this.state.error?.message}
               {'\n\n'}
               {this.state.error?.stack}
             </pre>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 text-sm transition-colors"
+              className="btn-primary mt-4 w-full py-2.5 text-sm"
             >
               Reload
             </button>

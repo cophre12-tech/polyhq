@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Login() {
@@ -9,6 +9,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Where a guard sent us from (e.g. /admin). Only accept in-app paths.
+  const from = location.state?.from
+  const returnTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : null
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -20,7 +24,7 @@ export default function Login() {
         navigate('/signup', { state: { email } })
         return
       }
-      navigate(['owner', 'co_owner'].includes(user.role) ? '/owner' : '/employee')
+      navigate(returnTo || (['owner', 'co_owner'].includes(user.role) ? '/owner' : '/employee'), { replace: !!returnTo })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -29,19 +33,20 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <h1 className="text-6xl sm:text-7xl font-bold tracking-tight text-white mb-3">
-            Poly<span className="text-indigo-400">HQ</span>
+          <h1 className="text-6xl sm:text-7xl font-semibold text-fg mb-4">
+            Poly<span className="text-accent-fg">HQ</span>
           </h1>
-          <p className="text-slate-400 text-base sm:text-lg">Run your business, not your paperwork</p>
+          <p className="text-fg-muted text-base sm:text-lg">Run your business, not your paperwork.</p>
+          <p className="mt-3 font-mono text-2xs uppercase tracking-wider text-fg-subtle">Payroll · Scheduling · Invoicing · Crew</p>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8 sm:p-10">
+        <div className="card p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-fg-muted mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -49,24 +54,33 @@ export default function Login() {
                 required
                 autoFocus
                 placeholder="you@company.com"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <label className="block text-sm font-medium text-fg-muted">Password</label>
+                <Link
+                  to="/forgot-password"
+                  state={{ email }}
+                  className="text-xs text-fg-subtle hover:text-fg transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="input"
               />
             </div>
 
             {error && (
-              <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-lg px-3.5 py-2.5">
+              <div className="text-danger text-sm bg-danger/10 border border-danger/20 rounded-lg px-3.5 py-2.5">
                 {error}
               </div>
             )}
@@ -74,25 +88,25 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-2.5 text-sm transition-colors mt-2"
+              className="btn-primary w-full py-2.5 mt-2"
             >
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-5">
+          <p className="text-center text-sm text-fg-subtle mt-5">
             New to PolyHQ?{' '}
-            <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+            <Link to="/signup" className="text-fg underline-offset-4 hover:underline transition-colors font-medium">
               Create an account
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">
+        <p className="text-center text-xs text-fg-subtle mt-6">
           By signing in you agree to our{' '}
-          <Link to="/terms" className="text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors">Terms of Service</Link>
+          <Link to="/terms" className="text-fg-subtle hover:text-fg-muted underline underline-offset-2 transition-colors">Terms of Service</Link>
           {' '}and{' '}
-          <Link to="/privacy" className="text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors">Privacy Policy</Link>
+          <Link to="/privacy" className="text-fg-subtle hover:text-fg-muted underline underline-offset-2 transition-colors">Privacy Policy</Link>
         </p>
       </div>
     </div>

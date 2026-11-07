@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getJobsForEmployee, updateJob, getAvailability, toggleUnavailableDate, addJobNote } from '../lib/db.js'
 
 const STATUS_META = {
-  scheduled:   { label: 'Scheduled',   badge: 'bg-blue-500/15 text-blue-400',     border: 'border-l-blue-500' },
-  in_progress: { label: 'In Progress', badge: 'bg-amber-500/15 text-amber-400',   border: 'border-l-amber-500' },
-  completed:   { label: 'Completed',   badge: 'bg-emerald-500/15 text-emerald-400', border: 'border-l-emerald-500' },
+  scheduled:   { label: 'Scheduled',   badge: 'bg-raised text-fg-muted',     border: 'border-l-accent' },
+  in_progress: { label: 'In Progress', badge: 'bg-warning/15 text-warning',   border: 'border-l-warning' },
+  completed:   { label: 'Completed',   badge: 'bg-success/15 text-success', border: 'border-l-success' },
 }
 
 function fmt12(t) {
@@ -56,15 +56,15 @@ export default function EmployeeSchedulePage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">My Schedule</h1>
-        <p className="text-slate-400 mt-1 text-sm">Your upcoming jobs and availability</p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-fg">My Schedule</h1>
+        <p className="text-fg-muted mt-1 text-sm">Your upcoming jobs and availability</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-900 border border-slate-800 rounded-xl p-1">
+      <div className="flex gap-1 mb-6 bg-surface border border-line rounded-xl p-1">
         {[['jobs', 'My Jobs'], ['availability', 'My Availability']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}>
+            className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'bg-overlay text-fg' : 'text-fg-muted hover:text-fg'}`}>
             {label}
           </button>
         ))}
@@ -73,9 +73,9 @@ export default function EmployeeSchedulePage() {
       {tab === 'jobs' && (
         <div className="space-y-8">
           {upcoming.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl px-6 py-14 text-center">
-              <p className="text-slate-400 font-medium mb-1">No upcoming jobs</p>
-              <p className="text-slate-500 text-sm">Your scheduled jobs will appear here when assigned by your manager.</p>
+            <div className="bg-surface border border-line rounded-xl px-6 py-14 text-center">
+              <p className="text-fg-muted font-medium mb-1">No upcoming jobs</p>
+              <p className="text-fg-subtle text-sm">Your scheduled jobs will appear here when assigned by your manager.</p>
             </div>
           ) : (
             Object.entries(grouped)
@@ -83,8 +83,8 @@ export default function EmployeeSchedulePage() {
               .map(([date, dayJobs]) => (
                 <div key={date}>
                   <div className="flex items-center gap-3 mb-3">
-                    <p className="text-sm font-semibold text-slate-300">{fmtDate(date)}</p>
-                    {date === today && <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">Today</span>}
+                    <p className="text-sm font-semibold text-fg-muted">{fmtDate(date)}</p>
+                    {date === today && <span className="text-xs font-semibold text-fg-muted bg-raised border border-line px-2 py-0.5 rounded-full">Today</span>}
                   </div>
                   <div className="space-y-3">
                     {dayJobs.map(job => (
@@ -97,7 +97,7 @@ export default function EmployeeSchedulePage() {
 
           {past.length > 0 && (
             <details className="mt-4">
-              <summary className="text-sm text-slate-500 hover:text-slate-300 cursor-pointer select-none mb-4 py-1">
+              <summary className="text-sm text-fg-subtle hover:text-fg-muted cursor-pointer select-none mb-4 py-1">
                 Past jobs ({past.length})
               </summary>
               <div className="space-y-3 mt-3">
@@ -137,49 +137,49 @@ function JobCard({ job, userId, onStatus, past }) {
   }
 
   return (
-    <div className={`bg-slate-900 border border-slate-800 border-l-2 ${meta.border} rounded-r-xl p-4 sm:p-5`}>
+    <div className={`bg-surface border border-line border-l-2 ${meta.border} rounded-r-xl p-4 sm:p-5`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1.5">
-            <p className="font-semibold text-white">{job.client_name}</p>
+            <p className="font-semibold text-fg">{job.client_name}</p>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${meta.badge}`}>{meta.label}</span>
-            {job.recurring && <span className="text-xs text-slate-500">↻ Recurring</span>}
+            {job.recurring && <span className="text-xs text-fg-subtle">↻ Recurring</span>}
           </div>
-          <p className="text-sm text-slate-400">{job.service_type}</p>
+          <p className="text-sm text-fg-muted">{job.service_type}</p>
           {job.client_address && (
             <a
               href={`https://maps.google.com/?q=${encodeURIComponent(job.client_address)}`}
               target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 mt-0.5 transition-colors"
+              className="inline-flex items-center gap-1 text-sm text-fg underline-offset-4 hover:underline mt-0.5 transition-colors"
             >
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               <span>{job.client_address}</span>
             </a>
           )}
           {job.start_time && (
-            <p className="text-sm text-slate-400 mt-1 tabular-nums">
+            <p className="text-sm text-fg-muted mt-1 tabular-nums">
               {fmt12(job.start_time)}{job.end_time ? ` – ${fmt12(job.end_time)}` : ''}
             </p>
           )}
-          {job.notes && <p className="text-sm text-slate-500 mt-2 italic">"{job.notes}"</p>}
+          {job.notes && <p className="text-sm text-fg-subtle mt-2 italic">"{job.notes}"</p>}
         </div>
 
         {!past && onStatus && (
           <div className="shrink-0 pt-0.5">
             {job.status === 'scheduled' && (
               <button onClick={() => onStatus('in_progress')}
-                className="text-sm sm:text-xs font-semibold text-amber-400 border border-amber-500/30 hover:bg-amber-500/10 px-4 sm:px-3 py-2 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                className="text-sm sm:text-xs font-semibold text-warning border border-warning/30 hover:bg-warning/10 px-4 sm:px-3 py-2 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap">
                 Start Job
               </button>
             )}
             {job.status === 'in_progress' && (
               <button onClick={() => onStatus('completed')}
-                className="text-sm sm:text-xs font-semibold text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10 px-4 sm:px-3 py-2 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                className="text-sm sm:text-xs font-semibold text-success border border-success/30 hover:bg-success/10 px-4 sm:px-3 py-2 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap">
                 Mark Done
               </button>
             )}
             {job.status === 'completed' && (
-              <span className="text-xs text-emerald-500">✓ Completed</span>
+              <span className="text-xs text-success">✓ Completed</span>
             )}
           </div>
         )}
@@ -187,7 +187,7 @@ function JobCard({ job, userId, onStatus, past }) {
 
       {/* Progress note section */}
       {!past && (
-        <div className="mt-3 pt-3 border-t border-slate-800">
+        <div className="mt-3 pt-3 border-t border-line">
           {noteOpen ? (
             <div className="space-y-2">
               <textarea
@@ -197,19 +197,19 @@ function JobCard({ job, userId, onStatus, past }) {
                 placeholder="e.g. Halfway done, wrapping up, waiting on client…"
                 rows={2}
                 autoFocus
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                className="input resize-none"
               />
               <div className="flex items-center gap-2">
                 <button
                   onClick={submitNote}
                   disabled={posting || !noteText.trim()}
-                  className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3.5 py-1.5 rounded-lg transition-colors"
+                  className="btn-primary text-xs px-3.5 py-1.5"
                 >
                   {posting ? 'Posting…' : 'Post Note'}
                 </button>
                 <button
                   onClick={() => { setNoteOpen(false); setNoteText('') }}
-                  className="text-xs text-slate-400 hover:text-white transition-colors"
+                  className="text-xs text-fg-muted hover:text-fg transition-colors"
                 >
                   Cancel
                 </button>
@@ -218,12 +218,12 @@ function JobCard({ job, userId, onStatus, past }) {
           ) : (
             <button
               onClick={() => setNoteOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-indigo-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-fg-subtle hover:text-fg transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
-              {posted ? <span className="text-emerald-400">Note posted ✓</span> : 'Add progress note'}
+              {posted ? <span className="text-success">Note posted ✓</span> : 'Add progress note'}
             </button>
           )}
         </div>
@@ -255,25 +255,25 @@ function AvailCalendar({ unavailable, onToggle }) {
 
   return (
     <div className="max-w-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6">
+      <div className="bg-surface border border-line rounded-xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-white">My Availability</h3>
+          <h3 className="font-semibold text-fg">My Availability</h3>
           <div className="flex items-center gap-1">
             <button onClick={() => setView(v => new Date(v.getFullYear(), v.getMonth()-1, 1))}
-              className="p-2 sm:p-1.5 text-slate-400 hover:text-white rounded transition-colors">
+              className="p-2 sm:p-1.5 text-fg-muted hover:text-fg rounded transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <span className="text-sm text-slate-300 min-w-[130px] text-center">{label}</span>
+            <span className="text-sm text-fg-muted min-w-[130px] text-center">{label}</span>
             <button onClick={() => setView(v => new Date(v.getFullYear(), v.getMonth()+1, 1))}
-              className="p-2 sm:p-1.5 text-slate-400 hover:text-white rounded transition-colors">
+              className="p-2 sm:p-1.5 text-fg-muted hover:text-fg rounded transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
         </div>
-        <p className="text-xs text-slate-500 mb-4">Tap a day to mark yourself unavailable. Your manager can see these.</p>
+        <p className="text-xs text-fg-subtle mb-4">Tap a day to mark yourself unavailable. Your manager can see these.</p>
 
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {DOW.map(d => <div key={d} className="text-center text-xs font-medium text-slate-600 py-1">{d[0]}</div>)}
+          {DOW.map(d => <div key={d} className="text-center text-xs font-medium text-fg-subtle py-1">{d[0]}</div>)}
         </div>
         <div className="grid grid-cols-7 gap-1">
           {cells.map((ds, i) => {
@@ -289,10 +289,10 @@ function AvailCalendar({ unavailable, onToggle }) {
                 disabled={isPast}
                 title={isUnavail ? 'Mark available' : 'Mark unavailable'}
                 className={`aspect-square rounded-lg text-sm font-medium transition-all ${
-                  isPast      ? 'text-slate-700 cursor-not-allowed' :
-                  isUnavail   ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30' :
-                  isToday     ? 'bg-indigo-600/15 text-indigo-300 border border-indigo-500/30 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30' :
-                                'text-slate-300 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent'
+                  isPast      ? 'text-fg-subtle cursor-not-allowed' :
+                  isUnavail   ? 'bg-danger/20 text-danger border border-danger/40 hover:bg-danger/30' :
+                  isToday     ? 'bg-raised text-fg-muted border border-line hover:bg-danger/10 hover:text-danger hover:border-danger/30' :
+                                'text-fg-muted hover:bg-danger/10 hover:text-danger border border-transparent'
                 }`}
               >
                 {day}
@@ -301,17 +301,17 @@ function AvailCalendar({ unavailable, onToggle }) {
           })}
         </div>
 
-        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-slate-800">
+        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-line">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-rose-500/20 border border-rose-500/40" />
-            <span className="text-xs text-slate-400">Unavailable</span>
+            <div className="w-3 h-3 rounded bg-danger/20 border border-danger/40" />
+            <span className="text-xs text-fg-muted">Unavailable</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-slate-700" />
-            <span className="text-xs text-slate-400">Available</span>
+            <div className="w-3 h-3 rounded bg-overlay" />
+            <span className="text-xs text-fg-muted">Available</span>
           </div>
           {unavailable.length > 0 && (
-            <span className="text-xs text-slate-500 ml-auto">{unavailable.length} day{unavailable.length !== 1 ? 's' : ''} off</span>
+            <span className="text-xs text-fg-subtle ml-auto">{unavailable.length} day{unavailable.length !== 1 ? 's' : ''} off</span>
           )}
         </div>
       </div>

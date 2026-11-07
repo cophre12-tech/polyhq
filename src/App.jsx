@@ -1,10 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import { useSubscription } from './hooks/useSubscription.js'
 import FeatureGate from './components/FeatureGate.jsx'
 import Layout from './components/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import OwnerDashboard from './pages/OwnerDashboard.jsx'
 import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
 import PayrollPage from './pages/PayrollPage.jsx'
@@ -29,12 +31,38 @@ import AdminPage from './pages/AdminPage.jsx'
 
 const ADMIN_EMAIL = 'cophre12@gmail.com'
 
-// Standalone guard — no Layout wrapper, silent redirect for non-admins
+// Standalone guard — no Layout wrapper. Signed-out visitors go to login and
+// come back here afterwards; a non-admin account gets an explicit message
+// instead of a silent redirect (which looks like the page is broken).
 function AdminGuard({ children }) {
-  const { user } = useAuth()
-  if (!user) return <Navigate to="/login" replace />
+  const { user, logout } = useAuth()
+  const location = useLocation()
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (user.email !== ADMIN_EMAIL) {
-    return <Navigate to={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'} replace />
+    return (
+      <div className="min-h-screen bg-base flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-surface border border-line rounded-xl p-6 text-center">
+          <h1 className="text-lg font-semibold text-fg mb-2">Admin access required</h1>
+          <p className="text-sm text-fg-muted mb-6">
+            You're signed in as <span className="text-fg">{user.email}</span>, which isn't an admin account.
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={logout}
+              className="btn-primary w-full text-sm px-4 py-2.5"
+            >
+              Sign out and switch account
+            </button>
+            <a
+              href={OWNER_ROLES.includes(user.role) ? '/owner' : '/employee'}
+              className="text-sm text-fg-muted hover:text-fg py-2"
+            >
+              Back to dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    )
   }
   return children
 }
@@ -72,11 +100,22 @@ function Root() {
 }
 
 export default function App() {
+  const { recovering } = useAuth()
+  const location = useLocation()
+
+  // A password-recovery session may only be used on /reset-password; never let
+  // Root or the guards route it into the dashboard.
+  if (recovering && location.pathname !== '/reset-password') {
+    return <Navigate to="/reset-password" replace />
+  }
+
   return (
     <Routes>
       <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/" element={<Root />} />
