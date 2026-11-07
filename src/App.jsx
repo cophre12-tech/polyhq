@@ -5,6 +5,8 @@ import FeatureGate from './components/FeatureGate.jsx'
 import Layout from './components/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import OwnerDashboard from './pages/OwnerDashboard.jsx'
 import EmployeeDashboard from './pages/EmployeeDashboard.jsx'
 import PayrollPage from './pages/PayrollPage.jsx'
@@ -98,11 +100,22 @@ function Root() {
 }
 
 export default function App() {
+  const { recovering } = useAuth()
+  const location = useLocation()
+
+  // A password-recovery session may only be used on /reset-password; never let
+  // Root or the guards route it into the dashboard.
+  if (recovering && location.pathname !== '/reset-password') {
+    return <Navigate to="/reset-password" replace />
+  }
+
   return (
     <Routes>
       <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/" element={<Root />} />

@@ -1,9 +1,24 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase.js'
+import { supabase, recoveryLinkInUrl } from '../lib/supabase.js'
 import { clearBizCache, seedDefaultServices } from '../lib/db.js'
 import { requestAndSubscribe } from '../lib/push.js'
 
 const AuthContext = createContext(null)
+
+// A recovery link signs the user in, but that session must only be used to set
+// a new password. Persist the flag for the tab so a refresh mid-reset doesn't
+// drop the user into the dashboard.
+const RECOVERY_KEY = 'polyhq.passwordRecovery'
+function readRecoveryFlag() {
+  try { return sessionStorage.getItem(RECOVERY_KEY) === '1' } catch { return false }
+}
+function writeRecoveryFlag(on) {
+  try {
+    if (on) sessionStorage.setItem(RECOVERY_KEY, '1')
+    else sessionStorage.removeItem(RECOVERY_KEY)
+  } catch { /* storage unavailable */ }
+}
+if (recoveryLinkInUrl) writeRecoveryFlag(true)
 
 async function fetchProfile(userId) {
   const timeout = new Promise(resolve => setTimeout(resolve, 5000, null))
@@ -59,6 +74,12 @@ export function AuthProvider({ children }) {
   const [plan, setPlan]             = useState('free')
   const [businesses, setBusinesses] = useState([])
   const [loading, setLoading]       = useState(true)
+  const [recovering, setRecovering] = useState(readRecoveryFlag)
+
+  function setRecovery(on) {
+    writeRecoveryFlag(on)
+    setRecovering(on)
+  }
 
   async function applySession(authUser) {
     const profile = await fetchProfile(authUser.id)
@@ -106,7 +127,12 @@ export function AuthProvider({ children }) {
     }).catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Recovery link opened: keep the user on /reset-password until they
+        // set a new password. getSession() above already applied the session.
+        setRecovery(true)
+      } else if (event === 'SIGNED_OUT') {
+        setRecovery(false)
         clearBizCache()
         setUser(null)
         setPlan('free')
@@ -131,7 +157,12 @@ export function AuthProvider({ children }) {
     return u  // null if no profile yet — caller redirects to signup
   }
 
+  function completeRecovery() {
+    setRecovery(false)
+  }
+
   async function logout() {
+    setRecovery(false)
     clearBizCache()
     await supabase.auth.signOut()
     setUser(null)
@@ -188,7 +219,7 @@ export function AuthProvider({ children }) {
   // a bare <div> that replaces the Provider) prevents React's Concurrent Mode
   // from re-mounting all consumers when loading flips to false.
   return (
-    <AuthContext.Provider value={{ user, plan, businesses, loading, login, logout, refreshUser, refreshPlan, switchBusiness, createBusiness }}>
+    <AuthContext.Provider value={{ user, plan, businesses, loading, recovering, completeRecovery, login, logout, refreshUser, refreshPlan, switchBusiness, createBusiness }}>
       {loading ? (
         <div className="min-h-screen bg-base flex flex-col items-center justify-center gap-4">
           <div className="w-8 h-8 border-2 border-line-strong border-t-fg rounded-full animate-spin" />
